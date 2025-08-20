@@ -6,12 +6,12 @@ Aplicación para gestionar pagos mensuales de inquilinos, visualizar el resumen 
 
 ## 🧱 Tecnologías utilizadas
 
-| Parte        | Stack                                       |
-|--------------|---------------------------------------------|
-| Frontend     | React, Tailwind CSS                         |
-| Backend      | Node.js, Express, Mongoose                  |
-| Base de datos| MongoDB Atlas                               |
-| Exportación  | xlsx + file-saver                           |
+| Parte        | Stack                                        |
+|--------------|----------------------------------------------|
+| Frontend     | Typescript, React, React Query, Tailwind CSS |
+| Backend      | Node.js, Express, Mongoose                   |
+| Base de datos| MongoDB Atlas                                |
+| Exportación  | pdf + file-saver                             |
 
 ---
 
@@ -114,8 +114,6 @@ GET     /api/users
 POST    /api/users
 GET     /api/payments
 POST    /api/payments
-GET     /api/settings
-PUT     /api/settings
 ```
 
 ---
