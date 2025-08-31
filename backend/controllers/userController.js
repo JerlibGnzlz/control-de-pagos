@@ -7,7 +7,13 @@ export const createUser = async (req, res) => {
     }
 
     try {
-        const existe = await User.findOne({ name })
+        const safeName = name.trim(); // quitar espacios al inicio y fin
+
+        // Buscar usuario de manera segura
+        const existe = await User.findOne({ name: safeName });
+        if (!existe) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
 
         if (existe) {
             return res.status(409).json({
