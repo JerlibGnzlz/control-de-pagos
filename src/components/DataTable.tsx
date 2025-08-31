@@ -78,9 +78,9 @@ const DataTable = () => {
                         {/* Total recaudado */}
                         <tr className="bg-green-100">
                             <td className="border px-2 py-2 text-left">Total recaudado</td>
-                            {MESES.map((m) => (
-                                <td key={m} className="border px-2 py-2 text-center">
-                                    ${getTotalPorMes(m)}
+                            {MESES.map((mes) => (
+                                <td key={mes} className="border px-2 py-2 text-center">
+                                    ${getTotalPorMes(mes)}
                                 </td>
                             ))}
                             <td className="border px-2 py-2 text-right">
