@@ -80,7 +80,6 @@ export default function ExportToPDF() {
                 className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm sm:text-base"
                 title="Exportar pagos a PDF"
             >
-                <span>📄</span>
                 Exportar a PDF
             </button>
         </div>
