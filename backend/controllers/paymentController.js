@@ -3,7 +3,6 @@ import UserModel from "../models/UserModel.js"
 import PaymentModel from '../models/PaymentModel.js';
 
 
-
 export const createPayment = async (req, res) => {
     let { userId, mes, monto } = req.body;
 
@@ -25,7 +24,7 @@ export const createPayment = async (req, res) => {
     }
 
     try {
-        // Buscar usuario por ID (más seguro)
+        // Buscar usuario por ID (seguro)
         const objectId = new mongoose.Types.ObjectId(userId);
         const user = await UserModel.findById(objectId);
         if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
@@ -61,3 +60,50 @@ export const createPayment = async (req, res) => {
     }
 };
 
+// Actualizar pago seguro
+export const updatePayment = async (req, res) => {
+    const { userId, mesOriginal, mes, monto } = req.body;
+
+    if (!userId || !mesOriginal || !mes || monto === undefined) {
+        return res.status(400).json({ message: 'Faltan datos necesarios' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ message: 'userId inválido' });
+    }
+
+    if (!isValidMonth(mes) || !isValidMonth(mesOriginal)) {
+        return res.status(400).json({ message: 'Mes inválido' });
+    }
+
+    if (typeof monto !== 'number' || monto < 0) {
+        return res.status(400).json({ message: 'Monto inválido' });
+    }
+
+    try {
+        const objectId = new mongoose.Types.ObjectId(userId);
+
+        const updatedPayment = await PaymentModel.findOneAndUpdate(
+            { name: objectId, mes: mesOriginal },
+            { monto, mes },
+            { new: true }
+        ).populate('name', 'name');
+
+        if (!updatedPayment) {
+            return res.status(404).json({ message: 'Pago no encontrado' });
+        }
+
+        res.status(200).json({
+            payment: {
+                _id: updatedPayment._id,
+                userId: updatedPayment.name._id,
+                mes: updatedPayment.mes,
+                monto: updatedPayment.monto,
+                userName: updatedPayment.name.name
+            }
+        });
+    } catch (error) {
+        console.error('Error al actualizar pago:', error);
+        res.status(500).json({ message: 'Error al actualizar pago' });
+    }
+};
