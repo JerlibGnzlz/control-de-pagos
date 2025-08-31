@@ -78,9 +78,9 @@ const DataTable = () => {
                         {/* Total recaudado */}
                         <tr className="bg-green-100">
                             <td className="border px-2 py-2 text-left">Total recaudado</td>
-                            {MESES.map((_, idx) => (
-                                <td key={idx} className="border px-2 py-2 text-center">
-                                    ${getTotalPorMes(MESES[idx])}
+                            {MESES.map((m) => (
+                                <td key={m} className="border px-2 py-2 text-center">
+                                    ${getTotalPorMes(m)}
                                 </td>
                             ))}
                             <td className="border px-2 py-2 text-right">
@@ -91,13 +91,13 @@ const DataTable = () => {
                         {/* Pago de alquiler editable */}
                         <tr className="bg-yellow-100">
                             <td className="border px-2 py-2 text-left">Pago de alquiler</td>
-                            {MESES.map((m, idx) => (
+                            {MESES.map((m) => (
                                 <td key={m} className="border px-2 py-2 text-center">
                                     <input
                                         type="number"
                                         className="w-20 text-center border rounded px-1 py-0.5"
-                                        value={alquilerMes[idx]}
-                                        onChange={e => handleAlquilerChange(idx, Number(e.target.value))}
+                                        value={alquilerMes[MESES.indexOf(m)]}
+                                        onChange={e => handleAlquilerChange(MESES.indexOf(m), Number(e.target.value))}
                                     />
                                 </td>
                             ))}
