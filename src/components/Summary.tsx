@@ -4,7 +4,8 @@ export default function Summary() {
     const { payments = [], isLoading } = usePayments()
 
     // Filtrar pagos válidos
-    const pagosValidos = payments.filter(p => p && p.monto != null)
+    const pagosValidos = payments.filter(p => p?.monto != null)
+
 
     // Convertir monto a número seguro
     const totalRecaudado = pagosValidos.reduce((acc, curr) => {
