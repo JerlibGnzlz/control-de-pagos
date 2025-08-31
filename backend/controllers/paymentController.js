@@ -11,31 +11,35 @@ export const createPayment = async (req, res) => {
         return res.status(400).json({ message: 'Faltan datos necesarios' });
     }
 
+    // Validar mes permitido
     if (!isValidMonth(mes)) {
         return res.status(400).json({ message: 'Mes inválido' });
     }
 
+    // Validar monto
     if (typeof monto !== 'number' || monto < 0) {
         return res.status(400).json({ message: 'Monto inválido' });
     }
 
     try {
-        // ⚡️ Sanear string para evitar caracteres extra
+        // ⚡️ Sanear string: quitar espacios y caracteres peligrosos
         name = name.trim();
 
-        // Buscar usuario de forma segura
+        // Buscar usuario por nombre de forma segura
         const user = await UserModel.findOne({ name });
         if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
-        // Validación: si ya existe un pago para este mes
+        // Validar si ya existe un pago para este mes
         const existingPayment = await PaymentModel.findOne({ name: user._id, mes });
         if (existingPayment) {
             return res.status(400).json({ message: `El usuario ya tiene un pago registrado para ${mes}` });
         }
 
+        // Crear nuevo pago
         const newPayment = new PaymentModel({ name: user._id, mes, monto });
         await newPayment.save();
 
+        // Guardar referencia en el usuario
         user.payments.push(newPayment._id);
         await user.save();
 
@@ -55,7 +59,6 @@ export const createPayment = async (req, res) => {
         res.status(500).json({ message: 'Error al crear el pago' });
     }
 };
-
 
 
 
