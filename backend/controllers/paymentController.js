@@ -4,9 +4,26 @@ import PaymentModel from '../models/PaymentModel.js';
 
 
 export const createPayment = async (req, res) => {
-    const { name, mes, monto } = req.body;
+    let { name, mes, monto } = req.body;
+
+    // ✅ Validar datos
+    if (!name || !mes || monto === undefined) {
+        return res.status(400).json({ message: 'Faltan datos necesarios' });
+    }
+
+    if (!isValidMonth(mes)) {
+        return res.status(400).json({ message: 'Mes inválido' });
+    }
+
+    if (typeof monto !== 'number' || monto < 0) {
+        return res.status(400).json({ message: 'Monto inválido' });
+    }
 
     try {
+        // ⚡️ Sanear string para evitar caracteres extra
+        name = name.trim();
+
+        // Buscar usuario de forma segura
         const user = await UserModel.findOne({ name });
         if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
