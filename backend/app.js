@@ -9,7 +9,22 @@ import { paymentRoutes } from './routes/paymentRoutes.js'
 dotenv.config()
 
 const app = express()
-app.use(cors())
+const allowedOrigins = [
+    'http://localhost:5173', // tu frontend local
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // permitir peticiones sin origin (ej: Postman)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) === -1) {
+            const msg = 'El CORS no permite este origen';
+            return callback(new Error(msg), false);
+        }
+        return callback(null, true);
+    }
+}));
 app.use(express.json())
 
 app.use('/api/users', userRoutes)
