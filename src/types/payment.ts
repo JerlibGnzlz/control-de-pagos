@@ -4,6 +4,7 @@ export interface User {
 }
 
 export interface Payment {
+    userId: string;
     _id: string;
     name: string;
     userName: string;
