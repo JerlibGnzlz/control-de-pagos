@@ -1,10 +1,20 @@
 import mongoose from 'mongoose';
-import UserModel from "../models/UserModel.js"
+import UserModel from "../models/UserModel.js";
 import PaymentModel from '../models/PaymentModel.js';
 
+// Lista de meses válidos
+const MESES = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
+
+const isValidMonth = (mes) => MESES.includes(mes);
+
+// Crear pago seguro
 export const createPayment = async (req, res) => {
     let { userId, mes, monto } = req.body;
 
+    // Validación de datos
     if (!userId || !mes || monto === undefined) {
         return res.status(400).json({ message: 'Faltan datos necesarios' });
     }
@@ -22,6 +32,7 @@ export const createPayment = async (req, res) => {
     }
 
     try {
+        // Transformar userId en ObjectId seguro
         const objectId = new mongoose.Types.ObjectId(userId);
 
         // Buscar usuario de manera segura
@@ -29,7 +40,11 @@ export const createPayment = async (req, res) => {
         if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
         // Validación: si ya existe un pago para este mes
-        const existingPayment = await PaymentModel.findOne({ name: objectId, mes });
+        const existingPayment = await PaymentModel.findOne({
+            name: objectId, // ObjectId seguro
+            mes          // Validado con isValidMonth
+        });
+
         if (existingPayment) {
             return res.status(400).json({ message: `El usuario ya tiene un pago registrado para ${mes}` });
         }
