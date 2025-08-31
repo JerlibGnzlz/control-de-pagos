@@ -91,8 +91,8 @@ const DataTable = () => {
                         {/* Pago de alquiler editable */}
                         <tr className="bg-yellow-100">
                             <td className="border px-2 py-2 text-left">Pago de alquiler</td>
-                            {MESES.map((_, idx) => (
-                                <td key={idx} className="border px-2 py-2 text-center">
+                            {MESES.map((m, idx) => (
+                                <td key={m} className="border px-2 py-2 text-center">
                                     <input
                                         type="number"
                                         className="w-20 text-center border rounded px-1 py-0.5"
@@ -109,9 +109,9 @@ const DataTable = () => {
                         {/* Pendiente */}
                         <tr className="bg-red-100">
                             <td className="border px-2 py-2 text-left">Pendiente</td>
-                            {MESES.map((_, idx) => (
-                                <td key={idx} className="border px-2 py-2 text-center">
-                                    ${getPendientePorMes(idx)}
+                            {MESES.map((m) => (
+                                <td key={m} className="border px-2 py-2 text-center">
+                                    ${getPendientePorMes(MESES.indexOf(m))}
                                 </td>
                             ))}
                             <td className="border px-2 py-2 text-right">
