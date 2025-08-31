@@ -3,47 +3,48 @@ import UserModel from "../models/UserModel.js"
 import PaymentModel from '../models/PaymentModel.js';
 
 
-export const createPayment = async (req, res) => {
-    let { name, mes, monto } = req.body;
 
-    // ✅ Validar datos
-    if (!name || !mes || monto === undefined) {
+export const createPayment = async (req, res) => {
+    let { userId, mes, monto } = req.body;
+
+    // ✅ Validación de datos
+    if (!userId || !mes || monto === undefined) {
         return res.status(400).json({ message: 'Faltan datos necesarios' });
     }
 
-    // Validar mes permitido
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ message: 'userId inválido' });
+    }
+
     if (!isValidMonth(mes)) {
         return res.status(400).json({ message: 'Mes inválido' });
     }
 
-    // Validar monto
     if (typeof monto !== 'number' || monto < 0) {
         return res.status(400).json({ message: 'Monto inválido' });
     }
 
     try {
-        // ⚡️ Sanear string: quitar espacios y caracteres peligrosos
-        name = name.trim();
-
-        // Buscar usuario por nombre de forma segura
-        const user = await UserModel.findOne({ name });
+        // Buscar usuario por ID (más seguro)
+        const objectId = new mongoose.Types.ObjectId(userId);
+        const user = await UserModel.findById(objectId);
         if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
-        // Validar si ya existe un pago para este mes
-        const existingPayment = await PaymentModel.findOne({ name: user._id, mes });
+        // Validación: si ya existe un pago para este mes
+        const existingPayment = await PaymentModel.findOne({ name: objectId, mes });
         if (existingPayment) {
             return res.status(400).json({ message: `El usuario ya tiene un pago registrado para ${mes}` });
         }
 
         // Crear nuevo pago
-        const newPayment = new PaymentModel({ name: user._id, mes, monto });
+        const newPayment = new PaymentModel({ name: objectId, mes, monto });
         await newPayment.save();
 
         // Guardar referencia en el usuario
         user.payments.push(newPayment._id);
         await user.save();
 
-        await newPayment.populate('name');
+        await newPayment.populate('name', 'name');
 
         res.status(201).json({
             payment: {
@@ -59,7 +60,6 @@ export const createPayment = async (req, res) => {
         res.status(500).json({ message: 'Error al crear el pago' });
     }
 };
-
 
 
 export const updatePayment = async (req, res) => {
