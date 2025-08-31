@@ -9,6 +9,10 @@ import { paymentRoutes } from './routes/paymentRoutes.js'
 dotenv.config()
 
 const app = express()
+
+app.disable('x-powered-by');
+
+
 const allowedOrigins = [
     'http://localhost:5173', // tu frontend local
 ];
