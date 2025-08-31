@@ -30,7 +30,7 @@ export const createPayment = async (req, res) => {
         if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
 
         // Validación: si ya existe un pago para este mes
-        const existingPayment = await PaymentModel.findOne({ name: objectId, mes });
+        const existingPayment = await PaymentModel.find({ name: objectId, mes });
         if (existingPayment) {
             return res.status(400).json({ message: `El usuario ya tiene un pago registrado para ${mes}` });
         }
