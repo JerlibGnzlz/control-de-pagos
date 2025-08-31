@@ -62,10 +62,10 @@ const DataTable = () => {
                         {users.map((u: User) => (
                             <tr key={u._id} className="even:bg-gray-50 hover:bg-blue-50 transition-colors">
                                 <td className="border px-2 py-2 font-medium text-left whitespace-nowrap">{u.name}</td>
-                                {MESES.map((m, idx) => {
+                                {MESES.map((m) => {
                                     const pago = getPagoPorMes(u.name, m)
                                     return (
-                                        <td key={idx} className="border px-2 py-1 text-center whitespace-nowrap">
+                                        <td key={m} className="border px-2 py-1 text-center whitespace-nowrap">
                                             {pago ? `$${pago}` : '-'}
                                         </td>
                                     )
