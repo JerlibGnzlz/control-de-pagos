@@ -46,9 +46,10 @@ const DataTable = () => {
         alquilerMes.reduce((acc, _, idx) => acc + getPendientePorMes(idx), 0)
 
     return (
-        <div className="w-full px-2">
-            <div className="hidden sm:block overflow-x-auto rounded-lg shadow-md">
-                <table className="min-w-full border-collapse border border-gray-300 text-sm md:text-base">
+        <div className="w-full flex justify-center">
+
+            <div >
+                <table className="table-auto w-full">
                     <thead className="bg-gray-100 sticky top-0 z-10">
                         <tr>
                             <th className="border px-2 py-2 text-left">Usuario</th>
