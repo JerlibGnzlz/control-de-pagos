@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import UserModel from "../models/UserModel.js";
 import PaymentModel from '../models/PaymentModel.js';
 
-// Lista de meses válidos
 const MESES = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -10,54 +9,58 @@ const MESES = [
 
 const isValidMonth = (mes) => MESES.includes(mes);
 
-// Crear pago seguro
 export const createPayment = async (req, res) => {
-    let { userId, mes, monto } = req.body;
-
-    // Validación de datos
-    if (!userId || !mes || monto === undefined) {
-        return res.status(400).json({ message: 'Faltan datos necesarios' });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-        return res.status(400).json({ message: 'userId inválido' });
-    }
-
-    if (!isValidMonth(mes)) {
-        return res.status(400).json({ message: 'Mes inválido' });
-    }
-
-    if (typeof monto !== 'number' || monto < 0) {
-        return res.status(400).json({ message: 'Monto inválido' });
-    }
-
     try {
-        // Transformar userId en ObjectId seguro
-        const objectId = new mongoose.Types.ObjectId(userId);
+        let { userId, name, mes, monto } = req.body;
 
-        // Buscar usuario de manera segura
-        const user = await UserModel.findById(objectId);
-        if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+        // Validación inicial
+        if ((!userId && !name) || !mes || monto === undefined) {
+            return res.status(400).json({ message: 'Faltan datos necesarios' });
+        }
 
-        // Validación: si ya existe un pago para este mes
+        if (!isValidMonth(mes)) {
+            return res.status(400).json({ message: 'Mes inválido' });
+        }
+
+        // Buscar usuario ya sea por userId o por name
+        let user = null;
+
+        if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+            user = await UserModel.findById(userId);
+        } else if (name) {
+            user = await UserModel.findOne({ name });
+        }
+
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        // Verificar si ya existe pago para ese mes
         const existingPayment = await PaymentModel.findOne({
-            name: objectId, // ObjectId seguro
-            mes          // Validado con isValidMonth
+            user: user._id,
+            mes
         });
 
         if (existingPayment) {
-            return res.status(400).json({ message: `El usuario ya tiene un pago registrado para ${mes}` });
+            return res.status(400).json({
+                message: `El usuario ya tiene un pago registrado para ${mes}`
+            });
         }
 
         // Crear nuevo pago
-        const newPayment = new PaymentModel({ name: objectId, mes, monto });
+        const newPayment = new PaymentModel({
+            user: user._id,
+            mes,
+            monto
+        });
         await newPayment.save();
 
         // Guardar referencia en el usuario
         user.payments.push(newPayment._id);
         await user.save();
 
-        await newPayment.populate('name', 'name');
+        // Popular datos del usuario
+        await newPayment.populate('user', 'name');
 
         res.status(201).json({
             payment: {
