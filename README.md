@@ -1,4 +1,4 @@
-# 📘 Control de Pagos - Solís 1154
+# 📘 Control de Pagos - Alquiler
 
 Aplicación para gestionar pagos mensuales de inquilinos, visualizar el resumen general, exportar los datos a Excel y mantener la información persistente con MongoDB.
 
