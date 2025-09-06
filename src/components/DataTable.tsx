@@ -36,19 +36,22 @@ const DataTable = () => {
         setAlquilerMes(nuevos)
     }
 
-    // Pendiente por mes (alquiler - recaudado)
-    const getPendientePorMes = (idx: number) => {
-        return alquilerMes[idx] - getTotalPorMes(MESES[idx])
+    // Cálculo de saldos acumulados mes a mes
+    const getSaldoAcumuladoPorMes = () => {
+        let saldo = 0
+        return MESES.map((mes, idx) => {
+            const recaudado = getTotalPorMes(mes)
+            const alquiler = alquilerMes[idx]
+            saldo += recaudado - alquiler
+            return saldo
+        })
     }
 
-    // Total pendiente acumulado
-    const getTotalPendiente = () =>
-        alquilerMes.reduce((acc, _, idx) => acc + getPendientePorMes(idx), 0)
+    const saldos = getSaldoAcumuladoPorMes()
 
     return (
         <div className="w-full flex justify-center">
-
-            <div >
+            <div>
                 <table className="table-auto w-full">
                     <thead className="bg-gray-100 sticky top-0 z-10">
                         <tr>
@@ -107,16 +110,16 @@ const DataTable = () => {
                             </td>
                         </tr>
 
-                        {/* Pendiente */}
-                        <tr className="bg-red-100">
-                            <td className="border px-2 py-2 text-left">Pendiente</td>
-                            {MESES.map((m) => (
-                                <td key={m} className="border px-2 py-2 text-center">
-                                    ${getPendientePorMes(MESES.indexOf(m))}
+                        {/* Sobrante acumulado */}
+                        <tr className="bg-blue-100">
+                            <td className="border px-2 py-2 text-left">Saldo acumulado</td>
+                            {saldos.map((saldo, idx) => (
+                                <td key={idx} className="border px-2 py-2 text-center">
+                                    ${saldo}
                                 </td>
                             ))}
                             <td className="border px-2 py-2 text-right">
-                                ${getTotalPendiente()}
+                                ${saldos[saldos.length - 1]}
                             </td>
                         </tr>
                     </tfoot>
