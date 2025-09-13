@@ -48,6 +48,8 @@ const DataTable = () => {
     }
 
     const saldos = getSaldoAcumuladoPorMes()
+    const totalRecaudado = users.reduce((acc, u) => acc + getTotal(u.name), 0)
+    const totalAlquiler = alquilerMes.reduce((acc, curr) => acc + curr, 0)
 
     return (
         <div className="w-full flex justify-center">
@@ -69,8 +71,12 @@ const DataTable = () => {
                                 {MESES.map((m) => {
                                     const pago = getPagoPorMes(u.name, m)
                                     return (
-                                        <td key={m} className="border px-2 py-1 text-center whitespace-nowrap">
-                                            {pago ? `$${pago}` : '-'}
+                                        <td
+                                            key={m}
+                                            className={`border px-2 py-1 text-center whitespace-nowrap ${pago > 0 ? 'bg-green-100 text-green-700 font-semibold' : 'bg-red-100 text-red-700 font-semibold'
+                                                }`}
+                                        >
+                                            {pago ? `$${pago}` : 'Pendiente'}
                                         </td>
                                     )
                                 })}
@@ -82,13 +88,26 @@ const DataTable = () => {
                         {/* Total recaudado */}
                         <tr className="bg-green-100">
                             <td className="border px-2 py-2 text-left">Total recaudado</td>
-                            {MESES.map((mes) => (
-                                <td key={mes} className="border px-2 py-2 text-center">
-                                    ${getTotalPorMes(mes)}
-                                </td>
-                            ))}
-                            <td className="border px-2 py-2 text-right">
-                                ${users.reduce((acc, u) => acc + getTotal(u.name), 0)}
+                            {MESES.map((mes, idx) => {
+                                const totalMes = getTotalPorMes(mes)
+                                const alquiler = alquilerMes[idx]
+                                const colorClass =
+                                    totalMes >= alquiler
+                                        ? 'text-red-600 font-bold'
+                                        : 'text-blue-600'
+                                return (
+                                    <td key={mes} className={`border px-2 py-2 text-center ${colorClass}`}>
+                                        ${totalMes}
+                                    </td>
+                                )
+                            })}
+                            <td
+                                className={`border px-2 py-2 text-right ${totalRecaudado >= totalAlquiler
+                                    ? 'text-red-600 font-bold'
+                                    : 'text-blue-600'
+                                    }`}
+                            >
+                                ${totalRecaudado}
                             </td>
                         </tr>
 
@@ -106,7 +125,7 @@ const DataTable = () => {
                                 </td>
                             ))}
                             <td className="border px-2 py-2 text-right">
-                                ${alquilerMes.reduce((acc, curr) => acc + curr, 0)}
+                                ${totalAlquiler}
                             </td>
                         </tr>
 
@@ -114,11 +133,11 @@ const DataTable = () => {
                         <tr className="bg-blue-100">
                             <td className="border px-2 py-2 text-left">Saldo acumulado</td>
                             {saldos.map((saldo, idx) => (
-                                <td key={idx} className="border px-2 py-2 text-center">
+                                <td key={idx} className="border px-2 py-2 text-center text-green-600 font-bold">
                                     ${saldo}
                                 </td>
                             ))}
-                            <td className="border px-2 py-2 text-right">
+                            <td className="border px-2 py-2 text-right text-green-600 font-bold">
                                 ${saldos[saldos.length - 1]}
                             </td>
                         </tr>

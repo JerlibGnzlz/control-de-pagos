@@ -7,8 +7,24 @@ export default function ExportToPDF() {
     const { payments, isLoading: paymentsLoading } = usePayments()
     const { users, isLoading: usersLoading } = useUsers()
 
-    // ⚡️ Calcular resumen
-    const totalRecaudado = payments.reduce((acc, curr) => acc + curr.monto, 0)
+    // ⚡️ Agrupar pagos por usuario y por mes
+    const pagosPorUsuario = users
+        .map(u => {
+            const pagosUsuario = payments
+                .filter(p => p.userId === u._id)
+                .map(p => ({ mes: p.mes, monto: p.monto }))
+
+            const total = pagosUsuario.reduce((acc, p) => acc + p.monto, 0)
+
+            return {
+                name: u.name,
+                total,
+                pagos: pagosUsuario,
+            }
+        })
+        .filter(u => u.total > 0)
+
+    const totalRecaudado = pagosPorUsuario.reduce((acc, u) => acc + u.total, 0)
     const fondo = totalRecaudado
     const alquiler = 100000
     const restante = Math.max(alquiler - fondo, 0)
@@ -17,60 +33,98 @@ export default function ExportToPDF() {
         const doc = new jsPDF()
         const pageWidth = doc.internal.pageSize.getWidth()
 
-        // 📌 Título
         doc.setFontSize(16)
-        doc.text('Reporte de Pagos - Solís 1154', pageWidth / 2, 20, { align: 'center' })
+        doc.text('Reporte de Pagos por Usuario - Solís 1154', pageWidth / 2, 20, { align: 'center' })
 
-        // 📌 Columnas
         const columns = [
-            { header: 'Usuario', dataKey: 'name' },
-            { header: 'Mes', dataKey: 'mes' },
-            { header: 'Monto', dataKey: 'monto' },
+            { header: 'Usuario / Mes', dataKey: 'name' },
+            { header: 'Monto', dataKey: 'total' },
         ]
 
-        // 📌 Construir el body: ahora usamos userName o userId
-        const body = payments.map(p => {
-            // Si tu backend devuelve userName directamente 👇
-            if (p.userName) {
-                return {
-                    name: p.userName,
-                    mes: p.mes,
-                    monto: `$${p.monto}`,
-                }
-            }
+        // Colores únicos para usuarios
+        const colores: [number, number, number][] = [
+            [255, 99, 71],   // rojo
+            [60, 179, 113],  // verde
+            [65, 105, 225],  // azul
+            [255, 165, 0],   // naranja
+            [147, 112, 219], // púrpura
+            [0, 206, 209],   // cian
+        ]
 
-            // Si solo trae userId, hacemos lookup en users
-            const user = users.find(u => u._id === p.userId)
-            return {
-                name: user ? user.name : 'Desconocido',
-                mes: p.mes,
-                monto: `$${p.monto}`,
-            }
+        // Determinar el pago máximo para escala de barra
+        const montoMaximo = Math.max(...pagosPorUsuario.flatMap(u => u.pagos.map(p => p.monto)))
+
+        const body: { name: string; total: string; isSubRow?: boolean; colorIndex?: number; monto?: number }[] = []
+
+        pagosPorUsuario.forEach((u, index) => {
+            const colorIndex = index % colores.length
+            body.push({ name: u.name, total: `$${u.total}`, isSubRow: false, colorIndex, monto: u.total })
+            u.pagos.forEach(p => {
+                body.push({ name: `   ${p.mes}`, total: `$${p.monto}`, isSubRow: true, colorIndex, monto: p.monto })
+            })
         })
 
         autoTable(doc, {
-            headStyles: { fillColor: [33, 150, 243] },
             startY: 30,
             columns,
             body,
+            headStyles: { fillColor: [33, 150, 243], textColor: 255 },
+            columnStyles: { total: { halign: 'right' } },
+            styles: { cellPadding: 3, fontSize: 11, lineColor: [200, 200, 200], lineWidth: 0.2 },
+            didParseCell: (data) => {
+                const raw = data.cell.raw as { colorIndex?: number; isSubRow?: boolean; monto?: number } || {};
+                const color = raw.colorIndex !== undefined ? colores[raw.colorIndex] : [0, 0, 0]
+
+                if (typeof data.cell.raw === 'object' && data.cell.raw !== null && (data.cell.raw as { isSubRow?: boolean }).isSubRow) {
+                    data.cell.styles.fillColor = [240, 240, 240]
+                    data.cell.styles.fontStyle = 'normal'
+                    if (data.column.dataKey === 'name') {
+                        const [r, g, b] = color.map(c => Math.min(c + 100, 255))
+                        data.cell.styles.textColor = [r, g, b]
+                    } else {
+                        data.cell.styles.textColor = 80
+                    }
+                } else {
+                    data.cell.styles.fillColor = [255, 255, 255]
+                    data.cell.styles.fontStyle = 'bold'
+                    if (data.column.dataKey === 'name') {
+                        data.cell.styles.textColor = color as [number, number, number]
+                    } else {
+                        data.cell.styles.textColor = 0
+                    }
+                }
+            },
+            didDrawCell: (data) => {
+                // Dibujar barra proporcional solo en la columna de "Monto"
+                if (
+                    data.column.dataKey === 'total' &&
+                    typeof data.cell.raw === 'object' &&
+                    data.cell.raw !== null &&
+                    'monto' in data.cell.raw
+                ) {
+                    const raw = data.cell.raw as { monto: number; colorIndex?: number }
+                    const { x, y, width, height } = data.cell
+                    const barWidth = (raw.monto / montoMaximo) * width
+                    const color = colores[raw.colorIndex || 0]
+
+                    doc.setFillColor(...color)
+                    doc.rect(x, y + 2, barWidth, height - 4, 'F')
+                }
+            },
+            margin: { top: 30 },
         })
 
-        // 📌 Resumen debajo de la tabla
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const resumenY = (doc as any).lastAutoTable.finalY + 10
-
+        const resumenY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10
         doc.setFontSize(12)
         doc.text(`Total Recaudado: $${totalRecaudado}`, 14, resumenY)
         doc.text(`Fondo Acumulado: $${fondo}`, 14, resumenY + 6)
         doc.text(`Pago de Alquiler: $${alquiler}`, 14, resumenY + 12)
         doc.text(`Resta por Pagar: $${restante}`, 14, resumenY + 18)
 
-        doc.save('reporte-pagos.pdf')
+        doc.save('reporte-pagos-dashboard.pdf')
     }
 
-    if (paymentsLoading || usersLoading) {
-        return <p className="text-center">Cargando datos...</p>
-    }
+    if (paymentsLoading || usersLoading) return <p className="text-center">Cargando datos...</p>
 
     return (
         <div className="flex justify-center my-4">
