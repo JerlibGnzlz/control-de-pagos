@@ -22,6 +22,7 @@ const PaymentForm = () => {
         setMessage('')
 
         if (!userName || !mes || !monto) {
+            setTimeout(() => setMessage(''), 2000)
             setMessage('Todos los campos son obligatorios')
             return
         }
