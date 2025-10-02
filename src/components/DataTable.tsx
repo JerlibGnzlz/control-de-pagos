@@ -10,7 +10,7 @@ const DataTable = () => {
 
     // Pago de alquiler por mes (editable)
     const [alquilerMes, setAlquilerMes] = useState<number[]>(
-        [0, 0, 0, 0, 100000, 100000, 100000, 100000, 100000, 100000, 0, 100000] // Ajustar según MESES
+        [0, 0, 0, 0, 100000, 100000, 100000, 100000, 100000, 100000, 150000, 100000] // Ajustar según MESES
     )
 
     // Obtener pago de un usuario en un mes
