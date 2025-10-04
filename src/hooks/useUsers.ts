@@ -31,16 +31,21 @@ export function useUsers() {
                 body: JSON.stringify({ name }),
             })
             if (!res.ok) throw new Error('Error al crear usuario')
-            return res.json()
+            const json = await res.json()
+            console.log("Respuesta backend:", json)
+            return json
         },
-        onSuccess: (data) => {
+        onSuccess: (data: AddUserResponse) => {
+            const newUser = data.user ?? data // usa data.user si existe, si no usa data directo
             queryClient.setQueryData<User[]>(['users'], (old) => {
-                const updated = old ? [...old, data.user] : [data.user]
+                const updated = old ? [...old, newUser] : [newUser]
                 localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(updated))
                 return updated
             })
         },
+
     })
+
 
     return {
         users: usersQuery.data ?? [],

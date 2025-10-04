@@ -1,4 +1,5 @@
 import User from "../models/UserModel.js"
+
 export const createUser = async (req, res) => {
     const { name } = req.body
 
@@ -7,14 +8,10 @@ export const createUser = async (req, res) => {
     }
 
     try {
-        const safeName = name.trim(); // quitar espacios al inicio y fin
+        const safeName = name.trim()
 
-        // Buscar usuario de manera segura
-        const existe = await User.findOne({ name: safeName });
-        if (!existe) {
-            return res.status(404).json({ message: 'Usuario no encontrado' });
-        }
-
+        // Verificar si ya existe
+        const existe = await User.findOne({ name: safeName.toLowerCase() })
         if (existe) {
             return res.status(409).json({
                 message: 'El usuario ya existe',
@@ -22,7 +19,8 @@ export const createUser = async (req, res) => {
             })
         }
 
-        const user = new User({ name: name.toLowerCase() })
+        // Crear si no existe
+        const user = new User({ name: safeName.toLowerCase() })
         await user.save()
 
         res.status(201).json({
@@ -35,4 +33,3 @@ export const createUser = async (req, res) => {
         res.status(500).json({ error: 'Error al crear usuario' })
     }
 }
-
