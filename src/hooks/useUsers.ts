@@ -1,8 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { User, AddUserResponse } from '../types/payment'
 
-const LOCALSTORAGE_KEY = 'users'
 const apiUrl = import.meta.env.VITE_API_URL
+
+const getAuthHeaders = () => {
+    const token = sessionStorage.getItem('token');
+    return {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+};
 
 export function useUsers() {
     const queryClient = useQueryClient()
@@ -10,13 +17,9 @@ export function useUsers() {
     const usersQuery = useQuery<User[]>({
         queryKey: ['users'],
         queryFn: async () => {
-            const stored = localStorage.getItem(LOCALSTORAGE_KEY)
-            if (stored) {
-                const parsed = JSON.parse(stored)
-                return Array.isArray(parsed) ? parsed : []
-            }
-
-            const res = await fetch(`${apiUrl}/api/users`)
+            const res = await fetch(`${apiUrl}/api/users`, {
+                headers: getAuthHeaders()
+            })
             if (!res.ok) throw new Error('Error al cargar usuarios')
             const data = await res.json()
             return Array.isArray(data) ? data : []
@@ -27,7 +30,7 @@ export function useUsers() {
         mutationFn: async (name: string) => {
             const res = await fetch(`${apiUrl}/api/users`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ name }),
             })
             if (!res.ok) throw new Error('Error al crear usuario')
@@ -38,9 +41,7 @@ export function useUsers() {
         onSuccess: (data: AddUserResponse) => {
             const newUser = data.user ?? data // usa data.user si existe, si no usa data directo
             queryClient.setQueryData<User[]>(['users'], (old) => {
-                const updated = old ? [...old, newUser] : [newUser]
-                localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(updated))
-                return updated
+                return old ? [...old, newUser] : [newUser]
             })
         },
 

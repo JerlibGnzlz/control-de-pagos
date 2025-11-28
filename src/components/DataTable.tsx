@@ -1,6 +1,6 @@
-import { useState } from 'react'
 import { useUsers } from '../hooks/useUsers'
 import { usePayments } from '../hooks/usePayments'
+import { usePaymentCalculations } from '../hooks/usePaymentCalculations'
 import { MESES } from './PaymentForm'
 import type { User } from '../types/payment'
 
@@ -8,48 +8,16 @@ const DataTable = () => {
     const { users } = useUsers()
     const { payments } = usePayments()
 
-    // Pago de alquiler por mes (editable)
-    const [alquilerMes, setAlquilerMes] = useState<number[]>(
-        [0, 0, 0, 0, 100000, 100000, 100000, 100000, 100000, 100000, 150000, 100000] // Ajustar según MESES
-    )
-
-    // Obtener pago de un usuario en un mes
-    const getPagoPorMes = (userName: string, mes: string) =>
-        payments.find(p => p?.userName === userName && p?.mes === mes)?.monto ?? 0
-
-    // Total pagado por un usuario
-    const getTotal = (userName: string) =>
-        payments
-            .filter(p => p?.userName === userName)
-            .reduce((acc, curr) => acc + (curr?.monto ?? 0), 0)
-
-    // Total recaudado por mes
-    const getTotalPorMes = (mes: string) =>
-        payments
-            .filter(p => p?.mes === mes)
-            .reduce((acc, curr) => acc + (curr?.monto ?? 0), 0)
-
-    // Cambiar monto de alquiler
-    const handleAlquilerChange = (idx: number, value: number) => {
-        const nuevos = [...alquilerMes]
-        nuevos[idx] = value
-        setAlquilerMes(nuevos)
-    }
-
-    // Cálculo de saldos acumulados mes a mes
-    const getSaldoAcumuladoPorMes = () => {
-        let saldo = 0
-        return MESES.map((mes, idx) => {
-            const recaudado = getTotalPorMes(mes)
-            const alquiler = alquilerMes[idx]
-            saldo += recaudado - alquiler
-            return saldo
-        })
-    }
-
-    const saldos = getSaldoAcumuladoPorMes()
-    const totalRecaudado = users.reduce((acc, u) => acc + getTotal(u.name), 0)
-    const totalAlquiler = alquilerMes.reduce((acc, curr) => acc + curr, 0)
+    const {
+        alquilerMes,
+        handleAlquilerChange,
+        getPagoPorMes,
+        getTotalPorUsuario,
+        getTotalPorMes,
+        saldosAcumulados,
+        totalRecaudado,
+        totalAlquiler
+    } = usePaymentCalculations(users, payments)
 
     return (
         <div className="w-full flex justify-center">
@@ -80,7 +48,7 @@ const DataTable = () => {
                                         </td>
                                     )
                                 })}
-                                <td className="border px-2 py-2 text-right font-semibold whitespace-nowrap">${getTotal(u.name)}</td>
+                                <td className="border px-2 py-2 text-right font-semibold whitespace-nowrap">${getTotalPorUsuario(u.name)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -132,13 +100,13 @@ const DataTable = () => {
                         {/* Sobrante acumulado */}
                         <tr className="bg-blue-100">
                             <td className="border px-2 py-2 text-left">Saldo acumulado</td>
-                            {saldos.map((saldo, idx) => (
+                            {saldosAcumulados.map((saldo, idx) => (
                                 <td key={idx} className="border px-2 py-2 text-center text-green-600 font-bold">
                                     ${saldo}
                                 </td>
                             ))}
                             <td className="border px-2 py-2 text-right text-green-600 font-bold">
-                                ${saldos[saldos.length - 1]}
+                                ${saldosAcumulados[saldosAcumulados.length - 1]}
                             </td>
                         </tr>
                     </tfoot>

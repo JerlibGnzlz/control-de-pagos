@@ -1,14 +1,14 @@
-// src/App.tsx
-import AddUserForm from './components/AddUserForm';
-import PaymentForm from './components/PaymentForm';
-import DataTable from './components/DataTable';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { queryClient } from './queryClient';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
-import Summary from './components/Summary';
-import './index.css'
-import ExportToPDF from './components/ExportToPDF';
+import { queryClient } from './queryClient';
+import { AuthProvider } from './context/AuthContext';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import Dashboard from './pages/Dashboard';
+import ProtectedRoute from './components/ProtectedRoute';
+import './index.css';
 
 const persister = createSyncStoragePersister({
   storage: window.localStorage,
@@ -20,23 +20,17 @@ function App() {
       client={queryClient}
       persistOptions={{ persister }}
     >
-      <div className="max-w-4xl mx-auto mt-4 p-4">
-        {/* Encabezado de la app */}
-        <h1 className="text-3xl font-bold text-center mb-6 text-indigo-600">
-          Sistema de Pago de Alquiler
-        </h1>
-        <p className="text-center text-gray-600 mb-8">
-          Registra y  gestiona pagos de alquiler y genera reportes fácilmente.
-        </p>
-
-        {/* Componentes */}
-        <AddUserForm />
-        <PaymentForm />
-        <DataTable />
-        <Summary />
-        <ExportToPDF />
-      </div>
-
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Dashboard />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </PersistQueryClientProvider>
   );

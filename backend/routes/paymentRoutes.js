@@ -1,16 +1,13 @@
 import express from 'express'
-import Payment from '../models/PaymentModel.js'
-import { createPayment } from '../controllers/paymentController.js'
+import { createPayment, getPayments } from '../controllers/paymentController.js'
+import { validateRequest } from '../middleware/validateRequest.js'
+import { createPaymentSchema } from '../schemas/paymentSchemas.js'
 
 export const paymentRoutes = express.Router()
 
-paymentRoutes.get('/', async (req, res) => {
-    const pagos = await Payment.find()
-    res.json(pagos)
-})
+paymentRoutes.get('/', getPayments)
 
-
-paymentRoutes.post("/", createPayment)
+paymentRoutes.post("/", validateRequest(createPaymentSchema), createPayment)
 
 
 

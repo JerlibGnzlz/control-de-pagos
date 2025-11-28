@@ -5,6 +5,9 @@ import dotenv from 'dotenv'
 
 import { userRoutes } from './routes/users.js'
 import { paymentRoutes } from './routes/paymentRoutes.js'
+import { authRoutes } from './routes/authRoutes.js'
+import { errorHandler } from './middleware/errorHandler.js'
+import { protect } from './middleware/authMiddleware.js'
 
 dotenv.config()
 
@@ -31,8 +34,11 @@ app.use(cors({
 }));
 app.use(express.json())
 
+app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
-app.use('/api/payments', paymentRoutes)
+app.use('/api/payments', protect, paymentRoutes)
+
+app.use(errorHandler)
 
 
 const starServer = async () => {
