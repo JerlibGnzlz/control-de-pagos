@@ -2,139 +2,277 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { usePayments } from '../hooks/usePayments'
 import { useUsers } from '../hooks/useUsers'
+import { usePaymentCalculations } from '../hooks/usePaymentCalculations'
 
 export default function ExportToPDF() {
     const { payments, isLoading: paymentsLoading } = usePayments()
     const { users, isLoading: usersLoading } = useUsers()
 
-    // ⚡️ Agrupar pagos por usuario y por mes
-    const pagosPorUsuario = users
-        .map(u => {
-            const pagosUsuario = payments
-                .filter(p => p.userId === u._id)
-                .map(p => ({ mes: p.mes, monto: p.monto }))
-
-            const total = pagosUsuario.reduce((acc, p) => acc + p.monto, 0)
-
-            return {
-                name: u.name,
-                total,
-                pagos: pagosUsuario,
-            }
-        })
-        .filter(u => u.total > 0)
-
-    const totalRecaudado = pagosPorUsuario.reduce((acc, u) => acc + u.total, 0)
-    const fondo = totalRecaudado
-    const alquiler = 100000
-    const restante = Math.max(alquiler - fondo, 0)
+    // Obtener cálculos reales de la aplicación
+    const {
+        totalRecaudado,
+        totalAlquiler,
+        saldosAcumulados
+    } = usePaymentCalculations(users, payments)
 
     const handleExportPDF = () => {
         const doc = new jsPDF()
         const pageWidth = doc.internal.pageSize.getWidth()
+        const pageHeight = doc.internal.pageSize.getHeight()
+        let yPos = 20
 
-        doc.setFontSize(16)
-        doc.text('Reporte de Pagos por Usuario - Solís 1154', pageWidth / 2, 20, { align: 'center' })
+        // ==================== HEADER ====================
+        // Fondo del header
+        doc.setFillColor(67, 56, 202) // Indigo
+        doc.rect(0, 0, pageWidth, 35, 'F')
 
-        const columns = [
-            { header: 'Usuario / Mes', dataKey: 'name' },
-            { header: 'Monto', dataKey: 'total' },
-        ]
+        // Título principal
+        doc.setTextColor(255, 255, 255)
+        doc.setFontSize(20)
+        doc.setFont('helvetica', 'bold')
+        doc.text('REPORTE FINANCIERO', pageWidth / 2, 15, { align: 'center' })
 
-        // Colores únicos para usuarios
-        const colores: [number, number, number][] = [
-            [255, 99, 71],   // rojo
-            [60, 179, 113],  // verde
-            [65, 105, 225],  // azul
-            [255, 165, 0],   // naranja
-            [147, 112, 219], // púrpura
-            [0, 206, 209],   // cian
-        ]
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'normal')
+        doc.text('Sistema de Pago de Alquiler - Salón Solís 1154', pageWidth / 2, 25, { align: 'center' })
 
-        // Determinar el pago máximo para escala de barra
-        const montoMaximo = Math.max(...pagosPorUsuario.flatMap(u => u.pagos.map(p => p.monto)))
+        // Fecha de generación
+        const fecha = new Date().toLocaleDateString('es-AR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        })
+        doc.setTextColor(100, 100, 100)
+        doc.setFontSize(9)
+        doc.text(`Generado: ${fecha}`, pageWidth - 14, 10, { align: 'right' })
 
-        const body: { name: string; total: string; isSubRow?: boolean; colorIndex?: number; monto?: number }[] = []
+        yPos = 45
 
+        // ==================== RESUMEN EJECUTIVO ====================
+        doc.setTextColor(0, 0, 0)
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.text('📊 Resumen Ejecutivo', 14, yPos)
+        yPos += 10
+
+        // Tarjetas de resumen
+        const cardWidth = (pageWidth - 42) / 3
+        const cardHeight = 25
+        const startX = 14
+
+        // Función para formatear moneda
+        const formatMoney = (amount: number) => {
+            return `$${amount.toLocaleString('es-AR')}`
+        }
+
+        const cajaChica = totalRecaudado - totalAlquiler
+
+        // Tarjeta 1: Total Recaudado
+        doc.setFillColor(220, 252, 231) // Verde claro
+        doc.roundedRect(startX, yPos, cardWidth, cardHeight, 3, 3, 'F')
+        doc.setFontSize(9)
+        doc.setTextColor(21, 128, 61) // Verde oscuro
+        doc.text('Total Recaudado', startX + 5, yPos + 7)
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.text(formatMoney(totalRecaudado), startX + 5, yPos + 17)
+
+        // Tarjeta 2: Total Alquileres
+        doc.setFillColor(254, 226, 226) // Rojo claro
+        doc.roundedRect(startX + cardWidth + 7, yPos, cardWidth, cardHeight, 3, 3, 'F')
+        doc.setFontSize(9)
+        doc.setTextColor(185, 28, 28) // Rojo oscuro
+        doc.text('Total Alquileres', startX + cardWidth + 12, yPos + 7)
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.text(formatMoney(totalAlquiler), startX + cardWidth + 12, yPos + 17)
+
+        // Tarjeta 3: Caja Chica
+        const cajaColor = cajaChica >= 0 ? [220, 252, 231] : [254, 226, 226]
+        const cajaTextColor = cajaChica >= 0 ? [21, 128, 61] : [185, 28, 28]
+        doc.setFillColor(...cajaColor)
+        doc.roundedRect(startX + (cardWidth + 7) * 2, yPos, cardWidth, cardHeight, 3, 3, 'F')
+        doc.setFontSize(9)
+        doc.setTextColor(...cajaTextColor)
+        doc.text('💰 Caja Chica', startX + (cardWidth + 7) * 2 + 5, yPos + 7)
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        const cajaText = cajaChica >= 0 ? `+${formatMoney(cajaChica)}` : formatMoney(cajaChica)
+        doc.text(cajaText, startX + (cardWidth + 7) * 2 + 5, yPos + 17)
+
+        yPos += cardHeight + 15
+
+        // ==================== TABLA DE PAGOS POR USUARIO ====================
+        doc.setTextColor(0, 0, 0)
+        doc.setFontSize(14)
+        doc.setFont('helvetica', 'bold')
+        doc.text('👥 Detalle de Pagos por Usuario', 14, yPos)
+        yPos += 5
+
+        // Agrupar pagos por usuario
+        const pagosPorUsuario = users
+            .map(u => {
+                const pagosUsuario = payments
+                    .filter(p => p.userId === u._id)
+                    .map(p => ({ mes: p.mes, monto: p.monto }))
+                    .sort((a, b) => {
+                        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+                        return meses.indexOf(a.mes) - meses.indexOf(b.mes)
+                    })
+
+                const total = pagosUsuario.reduce((acc, p) => acc + p.monto, 0)
+
+                return {
+                    name: u.name,
+                    total,
+                    pagos: pagosUsuario,
+                }
+            })
+            .filter(u => u.total > 0)
+            .sort((a, b) => b.total - a.total) // Ordenar por mayor contribución
+
+        // Preparar datos para la tabla
+        const tableData: any[] = []
         pagosPorUsuario.forEach((u, index) => {
-            const colorIndex = index % colores.length
-            body.push({ name: u.name, total: `$${u.total}`, isSubRow: false, colorIndex, monto: u.total })
+            // Fila del usuario
+            tableData.push({
+                usuario: u.name,
+                detalle: `${u.pagos.length} pago(s)`,
+                monto: formatMoney(u.total),
+                tipo: 'usuario',
+                index: index
+            })
+            // Filas de meses
             u.pagos.forEach(p => {
-                body.push({ name: `   ${p.mes}`, total: `$${p.monto}`, isSubRow: true, colorIndex, monto: p.monto })
+                tableData.push({
+                    usuario: '',
+                    detalle: `    └─ ${p.mes}`,
+                    monto: formatMoney(p.monto),
+                    tipo: 'mes',
+                    index: index
+                })
             })
         })
 
         autoTable(doc, {
-            startY: 30,
-            columns,
-            body,
-            headStyles: { fillColor: [33, 150, 243], textColor: 255 },
-            columnStyles: { total: { halign: 'right' } },
-            styles: { cellPadding: 3, fontSize: 11, lineColor: [200, 200, 200], lineWidth: 0.2 },
-            didParseCell: (data) => {
-                const raw = data.cell.raw as { colorIndex?: number; isSubRow?: boolean; monto?: number } || {};
-                const color = raw.colorIndex !== undefined ? colores[raw.colorIndex] : [0, 0, 0]
-
-                if (typeof data.cell.raw === 'object' && data.cell.raw !== null && (data.cell.raw as { isSubRow?: boolean }).isSubRow) {
-                    data.cell.styles.fillColor = [240, 240, 240]
-                    data.cell.styles.fontStyle = 'normal'
-                    if (data.column.dataKey === 'name') {
-                        const [r, g, b] = color.map(c => Math.min(c + 100, 255))
-                        data.cell.styles.textColor = [r, g, b]
-                    } else {
-                        data.cell.styles.textColor = 80
-                    }
-                } else {
+            startY: yPos,
+            head: [['Usuario', 'Detalle', 'Monto']],
+            body: tableData.map(row => [row.usuario, row.detalle, row.monto]),
+            headStyles: {
+                fillColor: [67, 56, 202], // Indigo
+                textColor: [255, 255, 255],
+                fontSize: 11,
+                fontStyle: 'bold',
+                halign: 'left'
+            },
+            columnStyles: {
+                0: { cellWidth: 50, fontStyle: 'bold' },
+                1: { cellWidth: 80 },
+                2: { cellWidth: 40, halign: 'right', fontStyle: 'bold' }
+            },
+            styles: {
+                fontSize: 10,
+                cellPadding: 4,
+                lineColor: [220, 220, 220],
+                lineWidth: 0.1
+            },
+            didParseCell: function (data) {
+                const rowData = tableData[data.row.index]
+                if (rowData && rowData.tipo === 'usuario') {
+                    // Fila de usuario
+                    data.cell.styles.fillColor = [249, 250, 251]
+                    data.cell.styles.textColor = [0, 0, 0]
+                } else if (rowData && rowData.tipo === 'mes') {
+                    // Fila de mes
                     data.cell.styles.fillColor = [255, 255, 255]
-                    data.cell.styles.fontStyle = 'bold'
-                    if (data.column.dataKey === 'name') {
-                        data.cell.styles.textColor = color as [number, number, number]
-                    } else {
-                        data.cell.styles.textColor = 0
-                    }
+                    data.cell.styles.textColor = [100, 100, 100]
+                    data.cell.styles.fontStyle = 'normal'
                 }
             },
-            didDrawCell: (data) => {
-                // Dibujar barra proporcional solo en la columna de "Monto"
-                if (
-                    data.column.dataKey === 'total' &&
-                    typeof data.cell.raw === 'object' &&
-                    data.cell.raw !== null &&
-                    'monto' in data.cell.raw
-                ) {
-                    const raw = data.cell.raw as { monto: number; colorIndex?: number }
-                    const { x, y, width, height } = data.cell
-                    const barWidth = (raw.monto / montoMaximo) * width
-                    const color = colores[raw.colorIndex || 0]
-
-                    doc.setFillColor(...color)
-                    doc.rect(x, y + 2, barWidth, height - 4, 'F')
-                }
-            },
-            margin: { top: 30 },
+            margin: { left: 14, right: 14 }
         })
 
-        const resumenY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10
-        doc.setFontSize(12)
-        doc.text(`Total Recaudado: $${totalRecaudado}`, 14, resumenY)
-        doc.text(`Fondo Acumulado: $${fondo}`, 14, resumenY + 6)
-        doc.text(`Pago de Alquiler: $${alquiler}`, 14, resumenY + 12)
-        doc.text(`Resta por Pagar: $${restante}`, 14, resumenY + 18)
+        // ==================== RESUMEN FINAL ====================
+        const finalY = (doc as any).lastAutoTable.finalY + 15
 
-        doc.save('reporte-pagos-dashboard.pdf')
+        // Verificar si necesitamos una nueva página
+        if (finalY > pageHeight - 60) {
+            doc.addPage()
+            yPos = 20
+        } else {
+            yPos = finalY
+        }
+
+        // Línea separadora
+        doc.setDrawColor(200, 200, 200)
+        doc.line(14, yPos - 5, pageWidth - 14, yPos - 5)
+
+        // Resumen final en caja
+        doc.setFillColor(245, 245, 245)
+        doc.roundedRect(14, yPos, pageWidth - 28, 45, 3, 3, 'F')
+
+        doc.setTextColor(0, 0, 0)
+        doc.setFontSize(12)
+        doc.setFont('helvetica', 'bold')
+        doc.text('💼 Resumen Financiero Final', 20, yPos + 10)
+
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(10)
+
+        const resumenLines = [
+            { label: 'Total Recaudado:', value: formatMoney(totalRecaudado), color: [22, 163, 74] },
+            { label: 'Total Alquileres:', value: formatMoney(totalAlquiler), color: [220, 38, 38] },
+            { label: 'Balance Final (Caja Chica):', value: cajaText, color: cajaChica >= 0 ? [22, 163, 74] : [220, 38, 38] }
+        ]
+
+        let lineY = yPos + 20
+        resumenLines.forEach(line => {
+            doc.setTextColor(60, 60, 60)
+            doc.text(line.label, 25, lineY)
+            doc.setTextColor(...line.color)
+            doc.setFont('helvetica', 'bold')
+            doc.text(line.value, pageWidth - 25, lineY, { align: 'right' })
+            doc.setFont('helvetica', 'normal')
+            lineY += 7
+        })
+
+        // Estado financiero
+        yPos += 50
+        doc.setFontSize(9)
+        doc.setTextColor(100, 100, 100)
+        const estado = cajaChica >= 0
+            ? '✅ Estado: SUPERÁVIT - Hay fondos disponibles'
+            : '⚠️ Estado: DÉFICIT - Se requieren fondos adicionales'
+        doc.text(estado, 20, yPos)
+
+        // ==================== PIE DE PÁGINA ====================
+        doc.setFontSize(8)
+        doc.setTextColor(150, 150, 150)
+        doc.text('Sistema de Gestión de Pagos - Salón Solís 1154', pageWidth / 2, pageHeight - 15, { align: 'center' })
+        doc.text(`Página 1 de 1`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+
+        // Guardar PDF
+        const nombreArchivo = `Reporte_Pagos_${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.pdf`
+        doc.save(nombreArchivo)
     }
 
-    if (paymentsLoading || usersLoading) return <p className="text-center">Cargando datos...</p>
+    if (paymentsLoading || usersLoading) return <p className="text-center text-gray-600 dark:text-gray-300">Cargando datos...</p>
 
     return (
         <div className="flex justify-center my-4">
             <button
                 onClick={handleExportPDF}
                 disabled={!payments.length}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors text-sm sm:text-base"
-                title="Exportar pagos a PDF"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+                title="Exportar pagos a PDF profesional"
             >
-                <span>Exportar a PDF</span>
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
+                </svg>
+                <span>📄 Exportar PDF Profesional</span>
             </button>
         </div>
     )

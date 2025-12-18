@@ -1,13 +1,31 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { Payment, User } from '../types/payment';
 import { MESES } from '../components/PaymentForm';
 
 export const usePaymentCalculations = (users: User[], payments: Payment[]) => {
-    // Pago de alquiler por mes (editable)
-    // TODO: Esto idealmente debería venir del backend o configuración
-    const [alquilerMes, setAlquilerMes] = useState<number[]>(
-        [0, 0, 0, 0, 100000, 100000, 100000, 100000, 100000, 100000, 150000, 100000]
-    );
+    // Pago de alquiler por mes (editable y persistente)
+    // Valores inician en 0 para que el usuario los configure según su necesidad
+    const [alquilerMes, setAlquilerMes] = useState<number[]>(() => {
+        const saved = localStorage.getItem('alquilerMes');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                // Verificar que sea un array válido de 12 elementos
+                if (Array.isArray(parsed) && parsed.length === 12) {
+                    return parsed;
+                }
+            } catch {
+                // Si hay error al parsear, usar valores por defecto
+            }
+        }
+        // Valores iniciales en 0 para todos los meses
+        return Array(12).fill(0);
+    });
+
+    // Guardar en localStorage cuando cambian los alquileres
+    useEffect(() => {
+        localStorage.setItem('alquilerMes', JSON.stringify(alquilerMes));
+    }, [alquilerMes]);
 
     // Obtener pago de un usuario en un mes
     const getPagoPorMes = (userName: string, mes: string) =>
@@ -28,7 +46,7 @@ export const usePaymentCalculations = (users: User[], payments: Payment[]) => {
     // Cambiar monto de alquiler
     const handleAlquilerChange = (idx: number, value: number) => {
         const nuevos = [...alquilerMes];
-        nuevos[idx] = value;
+        nuevos[idx] = isNaN(value) ? 0 : value;
         setAlquilerMes(nuevos);
     };
 
@@ -37,9 +55,18 @@ export const usePaymentCalculations = (users: User[], payments: Payment[]) => {
         let saldo = 0;
         return MESES.map((mes, idx) => {
             const recaudado = getTotalPorMes(mes);
-            const alquiler = alquilerMes[idx];
+            const alquiler = alquilerMes[idx] || 0;
             saldo += recaudado - alquiler;
             return saldo;
+        });
+    }, [payments, alquilerMes]);
+
+    // Diferencia por mes (recaudado - alquiler)
+    const diferenciaPorMes = useMemo(() => {
+        return MESES.map((mes, idx) => {
+            const recaudado = getTotalPorMes(mes);
+            const alquiler = alquilerMes[idx] || 0;
+            return recaudado - alquiler;
         });
     }, [payments, alquilerMes]);
 
@@ -49,8 +76,14 @@ export const usePaymentCalculations = (users: User[], payments: Payment[]) => {
     );
 
     const totalAlquiler = useMemo(() =>
-        alquilerMes.reduce((acc, curr) => acc + curr, 0),
+        alquilerMes.reduce((acc, curr) => acc + (curr || 0), 0),
         [alquilerMes]
+    );
+
+    // Saldo final (total recaudado - total alquiler)
+    const saldoFinal = useMemo(() =>
+        totalRecaudado - totalAlquiler,
+        [totalRecaudado, totalAlquiler]
     );
 
     return {
@@ -60,7 +93,9 @@ export const usePaymentCalculations = (users: User[], payments: Payment[]) => {
         getTotalPorUsuario,
         getTotalPorMes,
         saldosAcumulados,
+        diferenciaPorMes,
         totalRecaudado,
-        totalAlquiler
+        totalAlquiler,
+        saldoFinal
     };
 };

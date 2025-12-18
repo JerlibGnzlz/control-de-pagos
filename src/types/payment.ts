@@ -1,6 +1,9 @@
 export interface User {
     _id: string;
     name: string;
+    active?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface Payment {

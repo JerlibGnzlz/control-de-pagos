@@ -37,6 +37,29 @@ export const createPaymentRecord = async (user, mes, monto) => {
     return newPayment;
 };
 
+export const updatePaymentRecord = async (id, monto) => {
+    const payment = await PaymentModel.findById(id);
+    if (!payment) return null;
+
+    payment.monto = monto;
+    await payment.save();
+    return payment;
+};
+
+export const deletePaymentRecord = async (id) => {
+    const payment = await PaymentModel.findById(id);
+    if (!payment) return null;
+
+    // Eliminar referencia del usuario
+    await UserModel.updateOne(
+        { _id: payment.user },
+        { $pull: { payments: id } }
+    );
+
+    await payment.deleteOne();
+    return true;
+};
+
 export const getAllPayments = async () => {
     // Buscar todos los pagos sin populate
     const payments = await PaymentModel.find();

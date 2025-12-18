@@ -52,13 +52,13 @@ const PaymentForm = () => {
     return (
         <form
             onSubmit={handleSubmit}
-            className="flex flex-col sm:flex-row sm:flex-wrap gap-3 p-4 bg-white rounded-lg shadow-md mb-4 w-full max-w-3xl mx-auto"
+            className="flex flex-col sm:flex-row sm:flex-wrap gap-3 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md mb-4 w-full max-w-3xl mx-auto transition-colors"
         >
             {/* Usuario */}
             <select
                 value={userName}
                 onChange={e => setUserName(e.target.value)}
-                className="border px-3 py-2 rounded-md flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 rounded-md flex-1 min-w-[180px] focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 transition-colors"
             >
                 <option value="">Selecciona usuario</option>
                 {users.map((u: User) => (
@@ -72,7 +72,7 @@ const PaymentForm = () => {
             <select
                 value={mes}
                 onChange={e => setMes(e.target.value)}
-                className="border px-3 py-2 rounded-md flex-1 min-w-[160px] focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 rounded-md flex-1 min-w-[160px] focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 transition-colors disabled:opacity-50"
                 disabled={!userName}
             >
                 <option value="">Selecciona mes</option>
@@ -92,21 +92,21 @@ const PaymentForm = () => {
                 value={monto}
                 onChange={e => setMonto(e.target.value)}
                 placeholder="Monto"
-                className="border px-3 py-2 rounded-md flex-1 min-w-[120px] focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 px-3 py-2 rounded-md flex-1 min-w-[120px] focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 transition-colors"
             />
 
             {/* Botón */}
             <button
                 type="submit"
                 disabled={isAdding}
-                className="bg-blue-600 hover:bg-blue-700 transition text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
+                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition text-white px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
             >
                 {isAdding ? 'Agregando...' : 'Agregar'}
             </button>
 
             {/* Mensaje */}
             {message && (
-                <p className={`mt-2 sm:mt-0 w-full text-center font-medium ${message.includes('correcto') ? 'text-green-600' : 'text-red-600'}`}>
+                <p className={`mt-2 sm:mt-0 w-full text-center font-medium ${message.includes('correcto') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {message}
                 </p>
             )}

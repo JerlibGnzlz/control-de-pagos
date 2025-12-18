@@ -33,13 +33,41 @@ export function usePayments() {
                 headers: getAuthHeaders(),
                 body: JSON.stringify({ name, mes, monto }),
             });
-            if (!res.ok) throw new Error('Error al agregar pago');
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Error al agregar pago');
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['payments'] });
+        },
+    });
+
+    const updatePaymentMutation = useMutation<any, Error, { id: string; monto: number }>({
+        mutationFn: async ({ id, monto }) => {
+            const res = await fetch(`${apiUrl}/api/payments/${id}`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ monto }),
+            });
+            if (!res.ok) throw new Error('Error al actualizar pago');
             return res.json();
         },
-        onSuccess: (data) => {
-            queryClient.setQueryData<Payment[]>(['payments'], (old) => {
-                return old ? [...old, data.payment] : [data.payment];
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['payments'] });
+        },
+    });
+
+    const deletePaymentMutation = useMutation<any, Error, string>({
+        mutationFn: async (id) => {
+            const res = await fetch(`${apiUrl}/api/payments/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
             });
+            if (!res.ok) throw new Error('Error al eliminar pago');
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['payments'] });
         },
     });
 
@@ -49,5 +77,9 @@ export function usePayments() {
         error: paymentsQuery.error,
         addPayment: addPaymentMutation.mutateAsync,
         isAdding: addPaymentMutation.isPending,
+        updatePayment: updatePaymentMutation.mutateAsync,
+        isUpdating: updatePaymentMutation.isPending,
+        deletePayment: deletePaymentMutation.mutateAsync,
+        isDeleting: deletePaymentMutation.isPending
     };
 }

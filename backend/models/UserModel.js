@@ -16,12 +16,18 @@ const userSchema = new mongoose.Schema({
         enum: ['user', 'admin'],
         default: 'user'
     },
+    active: {
+        type: Boolean,
+        default: true
+    },
     payments: [
         {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Payment'
         }
     ]
+}, {
+    timestamps: true
 })
 
 userSchema.pre('save', async function (next) {

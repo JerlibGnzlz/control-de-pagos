@@ -1,1 +1,8 @@
-@import "tailwindcss"
+@import "tailwindcss";
+
+/* Force class-based dark mode for Tailwind v4 */
+@variant dark (&:where(.dark, .dark *));
+
+body {
+    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300;
+}
