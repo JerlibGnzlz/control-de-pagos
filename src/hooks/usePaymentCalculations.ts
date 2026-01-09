@@ -55,16 +55,21 @@ export const usePaymentCalculations = (users: User[], payments: Payment[]) => {
         setAlquilerMes(Array(12).fill(0));
     };
 
+    const totalSaldoAnterior = useMemo(() =>
+        users.reduce((acc, u) => acc + (u.saldoAnterior || 0), 0),
+        [users]
+    );
+
     // Cálculo de saldos acumulados mes a mes
     const saldosAcumulados = useMemo(() => {
-        let saldo = 0;
+        let saldo = totalSaldoAnterior; // Iniciar con el saldo del año anterior
         return MESES.map((mes, idx) => {
             const recaudado = getTotalPorMes(mes);
             const alquiler = alquilerMes[idx] || 0;
             saldo += recaudado - alquiler;
             return saldo;
         });
-    }, [payments, alquilerMes]);
+    }, [payments, alquilerMes, totalSaldoAnterior]);
 
     // Diferencia por mes (recaudado - alquiler)
     const diferenciaPorMes = useMemo(() => {
@@ -85,10 +90,10 @@ export const usePaymentCalculations = (users: User[], payments: Payment[]) => {
         [alquilerMes]
     );
 
-    // Saldo final (total recaudado - total alquiler)
+    // Saldo final (total recaudado + saldo anterior - total alquiler)
     const saldoFinal = useMemo(() =>
-        totalRecaudado - totalAlquiler,
-        [totalRecaudado, totalAlquiler]
+        (totalRecaudado + totalSaldoAnterior) - totalAlquiler,
+        [totalRecaudado, totalAlquiler, totalSaldoAnterior]
     );
 
     return {
@@ -102,6 +107,7 @@ export const usePaymentCalculations = (users: User[], payments: Payment[]) => {
         diferenciaPorMes,
         totalRecaudado,
         totalAlquiler,
-        saldoFinal
+        saldoFinal,
+        totalSaldoAnterior
     };
 };

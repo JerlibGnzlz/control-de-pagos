@@ -49,12 +49,16 @@ export function useUsers(includeInactive = false) {
     })
 
     // Mutation para actualizar usuario
-    const updateUserMutation = useMutation<User, Error, { id: string, name: string }>({
-        mutationFn: async ({ id, name }) => {
+    const updateUserMutation = useMutation<User, Error, { id: string, name?: string, saldoAnterior?: number }>({
+        mutationFn: async ({ id, name, saldoAnterior }) => {
+            const body: any = {};
+            if (name !== undefined) body.name = name;
+            if (saldoAnterior !== undefined) body.saldoAnterior = saldoAnterior;
+
             const res = await fetch(`${apiUrl}/api/users/${id}`, {
                 method: 'PUT',
                 headers: getAuthHeaders(),
-                body: JSON.stringify({ name }),
+                body: JSON.stringify(body),
             })
             if (!res.ok) {
                 const error = await res.json()

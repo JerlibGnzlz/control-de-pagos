@@ -2,6 +2,7 @@ export interface User {
     _id: string;
     name: string;
     active?: boolean;
+    saldoAnterior?: number; // Saldo que viene del año anterior
     createdAt?: string;
     updatedAt?: string;
 }

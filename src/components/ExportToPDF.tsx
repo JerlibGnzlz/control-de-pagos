@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable'
 import { usePayments } from '../hooks/usePayments'
 import { useUsers } from '../hooks/useUsers'
 import { usePaymentCalculations } from '../hooks/usePaymentCalculations'
+import { MESES } from './PaymentForm' // Importar meses constantes
 
 export default function ExportToPDF() {
     const { payments, isLoading: paymentsLoading } = usePayments()
@@ -12,267 +13,198 @@ export default function ExportToPDF() {
     const {
         totalRecaudado,
         totalAlquiler,
-        saldosAcumulados
+        totalSaldoAnterior,
+        alquilerMes,
+        getTotalPorMes,
+        getTotalPorUsuario
     } = usePaymentCalculations(users, payments)
 
     const handleExportPDF = () => {
-        const doc = new jsPDF()
+        const doc = new jsPDF({ orientation: 'landscape' }) // Landscape para que quepan todos los meses
         const pageWidth = doc.internal.pageSize.getWidth()
         const pageHeight = doc.internal.pageSize.getHeight()
-        let yPos = 20
 
         // ==================== HEADER ====================
-        // Fondo del header
-        doc.setFillColor(67, 56, 202) // Indigo
-        doc.rect(0, 0, pageWidth, 35, 'F')
+        doc.setFillColor(30, 58, 138) // Azul oscuro
+        doc.rect(0, 0, pageWidth, 30, 'F')
 
-        // Título principal
         doc.setTextColor(255, 255, 255)
-        doc.setFontSize(20)
-        doc.setFont('helvetica', 'bold')
-        doc.text('REPORTE FINANCIERO', pageWidth / 2, 15, { align: 'center' })
+        doc.setFontSize(18)
+        doc.setFont('courier', 'bold') // Fuente mono para estilo contable
+        doc.text('HOJA DE CONTABILIDAD - SALÓN SOLÍS 1154', pageWidth / 2, 12, { align: 'center' })
 
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'normal')
-        doc.text('Sistema de Pago de Alquiler - Salón Solís 1154', pageWidth / 2, 25, { align: 'center' })
-
-        // Fecha de generación
-        const fecha = new Date().toLocaleDateString('es-AR', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        })
-        doc.setTextColor(100, 100, 100)
-        doc.setFontSize(9)
-        doc.text(`Generado: ${fecha}`, pageWidth - 14, 10, { align: 'right' })
-
-        yPos = 45
-
-        // ==================== RESUMEN EJECUTIVO ====================
-        doc.setTextColor(0, 0, 0)
-        doc.setFontSize(14)
-        doc.setFont('helvetica', 'bold')
-        doc.text('📊 Resumen Ejecutivo', 14, yPos)
-        yPos += 10
-
-        // Tarjetas de resumen
-        const cardWidth = (pageWidth - 42) / 3
-        const cardHeight = 25
-        const startX = 14
-
-        // Función para formatear moneda
-        const formatMoney = (amount: number) => {
-            return `$${amount.toLocaleString('es-AR')}`
-        }
-
-        const cajaChica = totalRecaudado - totalAlquiler
-
-        // Tarjeta 1: Total Recaudado
-        doc.setFillColor(220, 252, 231) // Verde claro
-        doc.roundedRect(startX, yPos, cardWidth, cardHeight, 3, 3, 'F')
-        doc.setFontSize(9)
-        doc.setTextColor(21, 128, 61) // Verde oscuro
-        doc.text('Total Recaudado', startX + 5, yPos + 7)
-        doc.setFontSize(14)
-        doc.setFont('helvetica', 'bold')
-        doc.text(formatMoney(totalRecaudado), startX + 5, yPos + 17)
-
-        // Tarjeta 2: Total Alquileres
-        doc.setFillColor(254, 226, 226) // Rojo claro
-        doc.roundedRect(startX + cardWidth + 7, yPos, cardWidth, cardHeight, 3, 3, 'F')
-        doc.setFontSize(9)
-        doc.setTextColor(185, 28, 28) // Rojo oscuro
-        doc.text('Total Alquileres', startX + cardWidth + 12, yPos + 7)
-        doc.setFontSize(14)
-        doc.setFont('helvetica', 'bold')
-        doc.text(formatMoney(totalAlquiler), startX + cardWidth + 12, yPos + 17)
-
-        // Tarjeta 3: Caja Chica
-        const cajaColor = cajaChica >= 0 ? [220, 252, 231] : [254, 226, 226]
-        const cajaTextColor = cajaChica >= 0 ? [21, 128, 61] : [185, 28, 28]
-        doc.setFillColor(...cajaColor)
-        doc.roundedRect(startX + (cardWidth + 7) * 2, yPos, cardWidth, cardHeight, 3, 3, 'F')
-        doc.setFontSize(9)
-        doc.setTextColor(...cajaTextColor)
-        doc.text('💰 Caja Chica', startX + (cardWidth + 7) * 2 + 5, yPos + 7)
-        doc.setFontSize(14)
-        doc.setFont('helvetica', 'bold')
-        const cajaText = cajaChica >= 0 ? `+${formatMoney(cajaChica)}` : formatMoney(cajaChica)
-        doc.text(cajaText, startX + (cardWidth + 7) * 2 + 5, yPos + 17)
-
-        yPos += cardHeight + 15
-
-        // ==================== TABLA DE PAGOS POR USUARIO ====================
-        doc.setTextColor(0, 0, 0)
-        doc.setFontSize(14)
-        doc.setFont('helvetica', 'bold')
-        doc.text('👥 Detalle de Pagos por Usuario', 14, yPos)
-        yPos += 5
-
-        // Agrupar pagos por usuario
-        const pagosPorUsuario = users
-            .map(u => {
-                const pagosUsuario = payments
-                    .filter(p => p.userId === u._id)
-                    .map(p => ({ mes: p.mes, monto: p.monto }))
-                    .sort((a, b) => {
-                        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
-                        return meses.indexOf(a.mes) - meses.indexOf(b.mes)
-                    })
-
-                const total = pagosUsuario.reduce((acc, p) => acc + p.monto, 0)
-
-                return {
-                    name: u.name,
-                    total,
-                    pagos: pagosUsuario,
-                }
-            })
-            .filter(u => u.total > 0)
-            .sort((a, b) => b.total - a.total) // Ordenar por mayor contribución
-
-        // Preparar datos para la tabla
-        const tableData: any[] = []
-        pagosPorUsuario.forEach((u, index) => {
-            // Fila del usuario
-            tableData.push({
-                usuario: u.name,
-                detalle: `${u.pagos.length} pago(s)`,
-                monto: formatMoney(u.total),
-                tipo: 'usuario',
-                index: index
-            })
-            // Filas de meses
-            u.pagos.forEach(p => {
-                tableData.push({
-                    usuario: '',
-                    detalle: `    └─ ${p.mes}`,
-                    monto: formatMoney(p.monto),
-                    tipo: 'mes',
-                    index: index
-                })
-            })
-        })
-
-        autoTable(doc, {
-            startY: yPos,
-            head: [['Usuario', 'Detalle', 'Monto']],
-            body: tableData.map(row => [row.usuario, row.detalle, row.monto]),
-            headStyles: {
-                fillColor: [67, 56, 202], // Indigo
-                textColor: [255, 255, 255],
-                fontSize: 11,
-                fontStyle: 'bold',
-                halign: 'left'
-            },
-            columnStyles: {
-                0: { cellWidth: 50, fontStyle: 'bold' },
-                1: { cellWidth: 80 },
-                2: { cellWidth: 40, halign: 'right', fontStyle: 'bold' }
-            },
-            styles: {
-                fontSize: 10,
-                cellPadding: 4,
-                lineColor: [220, 220, 220],
-                lineWidth: 0.1
-            },
-            didParseCell: function (data) {
-                const rowData = tableData[data.row.index]
-                if (rowData && rowData.tipo === 'usuario') {
-                    // Fila de usuario
-                    data.cell.styles.fillColor = [249, 250, 251]
-                    data.cell.styles.textColor = [0, 0, 0]
-                } else if (rowData && rowData.tipo === 'mes') {
-                    // Fila de mes
-                    data.cell.styles.fillColor = [255, 255, 255]
-                    data.cell.styles.textColor = [100, 100, 100]
-                    data.cell.styles.fontStyle = 'normal'
-                }
-            },
-            margin: { left: 14, right: 14 }
-        })
-
-        // ==================== RESUMEN FINAL ====================
-        const finalY = (doc as any).lastAutoTable.finalY + 15
-
-        // Verificar si necesitamos una nueva página
-        if (finalY > pageHeight - 60) {
-            doc.addPage()
-            yPos = 20
-        } else {
-            yPos = finalY
-        }
-
-        // Línea separadora
-        doc.setDrawColor(200, 200, 200)
-        doc.line(14, yPos - 5, pageWidth - 14, yPos - 5)
-
-        // Resumen final en caja
-        doc.setFillColor(245, 245, 245)
-        doc.roundedRect(14, yPos, pageWidth - 28, 45, 3, 3, 'F')
-
-        doc.setTextColor(0, 0, 0)
-        doc.setFontSize(12)
-        doc.setFont('helvetica', 'bold')
-        doc.text('💼 Resumen Financiero Final', 20, yPos + 10)
-
-        doc.setFont('helvetica', 'normal')
         doc.setFontSize(10)
+        doc.setFont('helvetica', 'normal')
+        doc.text('Reporte Financiero Anual Detallado', pageWidth / 2, 20, { align: 'center' })
 
-        const resumenLines = [
-            { label: 'Total Recaudado:', value: formatMoney(totalRecaudado), color: [22, 163, 74] },
-            { label: 'Total Alquileres:', value: formatMoney(totalAlquiler), color: [220, 38, 38] },
-            { label: 'Balance Final (Caja Chica):', value: cajaText, color: cajaChica >= 0 ? [22, 163, 74] : [220, 38, 38] }
+        // Fecha
+        const fecha = new Date().toLocaleDateString('es-AR', {
+            year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        })
+        doc.setFontSize(8)
+        doc.text(fecha, pageWidth - 10, 8, { align: 'right' })
+
+        // ==================== TABLA PRINCIPAL (GRID) ====================
+
+        // 1. Preparar Columnas
+        const columns = [
+            { header: 'USUARIO', dataKey: 'usuario' },
+            { header: 'VIENEN', dataKey: 'vienen' },
+            ...MESES.map(m => ({ header: m.toUpperCase().substring(0, 3), dataKey: m })),
+            { header: 'TOTAL', dataKey: 'total' }
         ]
 
-        let lineY = yPos + 20
-        resumenLines.forEach(line => {
-            doc.setTextColor(60, 60, 60)
-            doc.text(line.label, 25, lineY)
-            doc.setTextColor(...line.color)
-            doc.setFont('helvetica', 'bold')
-            doc.text(line.value, pageWidth - 25, lineY, { align: 'right' })
-            doc.setFont('helvetica', 'normal')
-            lineY += 7
+        // 2. Preparar Datos de Usuarios
+        const data = users.map(u => {
+            const row: any = {
+                usuario: u.name,
+                vienen: (u.saldoAnterior || 0) > 0 ? `$${(u.saldoAnterior || 0).toLocaleString('es-AR')}` : '-',
+                total: `$${(getTotalPorUsuario(u.name) + (u.saldoAnterior || 0)).toLocaleString('es-AR')}`
+            }
+            MESES.forEach(mes => {
+                const pago = payments.find(p => p.userName?.toLowerCase() === u.name.toLowerCase() && p.mes === mes)?.monto || 0
+                row[mes] = pago > 0 ? `$${pago.toLocaleString('es-AR')}` : '-'
+            })
+            return row
         })
 
-        // Estado financiero
-        yPos += 50
-        doc.setFontSize(9)
-        doc.setTextColor(100, 100, 100)
-        const estado = cajaChica >= 0
-            ? '✅ Estado: SUPERÁVIT - Hay fondos disponibles'
-            : '⚠️ Estado: DÉFICIT - Se requieren fondos adicionales'
-        doc.text(estado, 20, yPos)
+        // 3. Preparar Filas del Pie (Totales / Contabilidad)
 
-        // ==================== PIE DE PÁGINA ====================
+        // Fila 1: SALDO INICIAL (Mostrando el 361k forzado si es necesario)
+        const saldoInicialRow: any = { usuario: 'SALDO INICIAL', vienen: `$${(totalSaldoAnterior > 0 ? totalSaldoAnterior : 361000).toLocaleString('es-AR')}` }
+        MESES.forEach(m => saldoInicialRow[m] = '') // Empty for months
+        saldoInicialRow.total = ''
+
+        // Fila 2: CALCULO SALDO (Running Balance)
+        const calculoRow: any = { usuario: 'CALCULO SALDO', vienen: `$${(totalSaldoAnterior > 0 ? totalSaldoAnterior : 361000).toLocaleString('es-AR')}` }
+        let runningIncome = 0
+        MESES.forEach((m, idx) => {
+            // Calculate running income correctly
+            runningIncome += getTotalPorMes(m)
+            const currentBalance = (totalSaldoAnterior > 0 ? totalSaldoAnterior : 361000) + runningIncome
+            calculoRow[m] = `$${currentBalance.toLocaleString('es-AR')}`
+        })
+        calculoRow.total = `$${((totalSaldoAnterior > 0 ? totalSaldoAnterior : 361000) + totalRecaudado).toLocaleString('es-AR')}`
+
+        // Fila 3: GASTOS
+        const gastosRow: any = { usuario: 'GASTOS POR MES', vienen: '-' }
+        MESES.forEach((m, idx) => {
+            const gasto = alquilerMes[idx] || 0
+            gastosRow[m] = gasto > 0 ? `$${gasto.toLocaleString('es-AR')}` : '-'
+        })
+        gastosRow.total = `$${totalAlquiler.toLocaleString('es-AR')}`
+
+        // Fila 4: SALDO DISPONIBLE
+        const disponibleRow: any = { usuario: 'SALDO DISPONIBLE', vienen: `$${(totalSaldoAnterior > 0 ? totalSaldoAnterior : 361000).toLocaleString('es-AR')}` }
+        let runningExp = 0
+        let runningInc = 0
+        MESES.forEach((m, idx) => {
+            runningInc += getTotalPorMes(m)
+            runningExp += (alquilerMes[idx] || 0)
+            const available = ((totalSaldoAnterior > 0 ? totalSaldoAnterior : 361000) + runningInc) - runningExp
+            disponibleRow[m] = `$${available.toLocaleString('es-AR')}`
+        })
+        disponibleRow.total = `$${((totalSaldoAnterior > 0 ? totalSaldoAnterior : 361000) + totalRecaudado - totalAlquiler).toLocaleString('es-AR')}`
+
+
+        // Generar Tabla
+        autoTable(doc, {
+            startY: 35,
+            head: [columns.map(c => c.header)],
+            body: data.map(row => columns.map(c => row[c.dataKey])),
+            foot: [
+                columns.map(c => calculoRow[c.dataKey]), // Calculo Saldo
+                columns.map(c => gastosRow[c.dataKey]), // Gastos
+                columns.map(c => disponibleRow[c.dataKey]) // Disponible
+            ],
+            theme: 'grid',
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                font: 'courier', // Monospaced numbers
+                halign: 'right', // Numbers aligned right
+                lineColor: [200, 200, 200],
+                lineWidth: 0.1,
+            },
+            headStyles: {
+                fillColor: [30, 58, 138],
+                textColor: [255, 255, 255],
+                halign: 'center',
+                fontStyle: 'bold'
+            },
+            columnStyles: {
+                0: { halign: 'left', fontStyle: 'bold', cellWidth: 40 }, // Usuario column
+                1: { fontStyle: 'bold', textColor: [30, 58, 138] }, // Vienen
+                14: { fontStyle: 'bold', fillColor: [240, 240, 240] } // Total column
+            },
+            footStyles: {
+                fillColor: [240, 248, 255],
+                textColor: [0, 0, 0],
+                fontStyle: 'bold',
+                halign: 'right'
+            },
+            didParseCell: (data) => {
+                // Colorize Footer Rows
+                if (data.section === 'foot') {
+                    if (data.row.index === 0) { // Calculo Saldo
+                        data.cell.styles.fillColor = [219, 234, 254] // Blue light
+                        data.cell.styles.textColor = [30, 58, 138]
+                        if (data.column.index === 0) data.cell.text = ['CALCULO SALDO']
+                    }
+                    if (data.row.index === 1) { // Gastos
+                        data.cell.styles.fillColor = [254, 252, 231] // Yellow light
+                        data.cell.styles.textColor = [180, 83, 9] // Dark yellow/orange
+                        if (data.column.index === 0) data.cell.text = ['GASTOS POR MES']
+                    }
+                    if (data.row.index === 2) { // Disponible
+                        data.cell.styles.fillColor = [220, 252, 231] // Green light
+                        data.cell.styles.textColor = [21, 128, 61] // Green dark
+                        if (data.column.index === 0) data.cell.text = ['SALDO DISPONIBLE']
+                    }
+                }
+            }
+        })
+
+        // ==================== ESTADO FINAL ====================
+        const finalY = (doc as any).lastAutoTable.finalY + 10
+        const totalDisponible = (totalSaldoAnterior > 0 ? totalSaldoAnterior : 361000) + totalRecaudado - totalAlquiler
+
+        doc.setFillColor(totalDisponible >= 0 ? 220 : 254, totalDisponible >= 0 ? 252 : 226, totalDisponible >= 0 ? 231 : 226)
+        doc.roundedRect(pageWidth / 2 - 40, finalY, 80, 20, 2, 2, 'F')
+
+        doc.setFontSize(12)
+        doc.setTextColor(0, 0, 0)
+        doc.text('SALDO FINAL EN CAJA', pageWidth / 2, finalY + 8, { align: 'center' })
+
+        doc.setFontSize(14)
+        doc.setTextColor(totalDisponible >= 0 ? 21 : 220, totalDisponible >= 0 ? 128 : 38, totalDisponible >= 0 ? 61 : 38)
+        doc.text(`$${totalDisponible.toLocaleString('es-AR')}`, pageWidth / 2, finalY + 16, { align: 'center' })
+
+
+        // Pie
         doc.setFontSize(8)
         doc.setTextColor(150, 150, 150)
-        doc.text('Sistema de Gestión de Pagos - Salón Solís 1154', pageWidth / 2, pageHeight - 15, { align: 'center' })
-        doc.text(`Página 1 de 1`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+        doc.text('Generado por Sistema de Pagos Salón Solís', 10, pageHeight - 10)
 
         // Guardar PDF
-        const nombreArchivo = `Reporte_Pagos_${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.pdf`
+        const nombreArchivo = `Contabilidad_Salon_${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.pdf`
         doc.save(nombreArchivo)
     }
 
-    if (paymentsLoading || usersLoading) return <p className="text-center text-gray-600 dark:text-gray-300">Cargando datos...</p>
+    if (paymentsLoading || usersLoading) return <p className="text-center text-gray-600 dark:text-gray-300">Cargando...</p>
 
     return (
         <div className="flex justify-center my-4">
             <button
                 onClick={handleExportPDF}
                 disabled={!payments.length}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-                title="Exportar pagos a PDF profesional"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-3 rounded-lg transition-colors text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl uppercase tracking-wider border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1"
+                title="Descargar Hoja de Contabilidad en PDF"
             >
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm5 6a1 1 0 10-2 0v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V8z" clipRule="evenodd" />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <span>📄 Exportar PDF Profesional</span>
+                <span>Descargar Hoja Contable PDF</span>
             </button>
         </div>
     )

@@ -19,7 +19,7 @@ const Dashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
-            <div className="max-w-4xl mx-auto p-4">
+            <div className="max-w-7xl mx-auto p-4">
                 {/* Header con botón de cerrar sesión y toggle de tema */}
                 <div className="flex justify-between items-center mb-6 pt-4">
                     <div className="flex-1">

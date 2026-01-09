@@ -20,6 +20,10 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    saldoAnterior: {
+        type: Number,
+        default: 0
+    },
     payments: [
         {
             type: mongoose.Schema.Types.ObjectId,

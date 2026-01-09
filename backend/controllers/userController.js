@@ -48,38 +48,41 @@ export const createUser = async (req, res) => {
     }
 }
 
-// Actualizar usuario
 export const updateUser = async (req, res) => {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, saldoAnterior } = req.body;
 
-    if (!name || name.trim() === '') {
-        return res.status(400).json({ message: 'El nombre es obligatorio.' });
+    if ((!name || name.trim() === '') && saldoAnterior === undefined) {
+        return res.status(400).json({ message: 'El nombre o el saldo anterior son obligatorios.' });
     }
 
     try {
-        const safeName = name.trim().toLowerCase();
-
-        // Verificar si el usuario existe
         const user = await User.findById(id);
         if (!user) {
             return res.status(404).json({ message: 'Usuario no encontrado' });
         }
 
-        // Verificar si el nuevo nombre ya existe (excepto el mismo usuario)
-        const existeNombre = await User.findOne({
-            name: safeName,
-            _id: { $ne: id }
-        });
+        if (name) {
+            const safeName = name.trim().toLowerCase();
 
-        if (existeNombre) {
-            return res.status(409).json({
-                message: 'Ya existe otro usuario con ese nombre'
+            // Verificar si el nuevo nombre ya existe (excepto el mismo usuario)
+            const existeNombre = await User.findOne({
+                name: safeName,
+                _id: { $ne: id }
             });
+
+            if (existeNombre) {
+                return res.status(409).json({
+                    message: 'Ya existe otro usuario con ese nombre'
+                });
+            }
+            user.name = safeName;
         }
 
-        // Actualizar
-        user.name = safeName;
+        if (saldoAnterior !== undefined) {
+            user.saldoAnterior = Number(saldoAnterior);
+        }
+
         await user.save();
 
         res.json({
