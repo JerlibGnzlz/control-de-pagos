@@ -1,5 +1,5 @@
 import express from 'express'
-import { createPayment, getPayments, updatePayment, deletePayment } from '../controllers/paymentController.js'
+import { createPayment, getPayments, updatePayment, deletePayment, deleteAllPayments } from '../controllers/paymentController.js'
 import { validateRequest } from '../middleware/validateRequest.js'
 import { createPaymentSchema } from '../schemas/paymentSchemas.js'
 
@@ -11,4 +11,5 @@ paymentRoutes.post("/", validateRequest(createPaymentSchema), createPayment)
 
 // Nuevas rutas para editar y eliminar
 paymentRoutes.put("/:id", updatePayment)
+paymentRoutes.delete("/all", deleteAllPayments)
 paymentRoutes.delete("/:id", deletePayment)

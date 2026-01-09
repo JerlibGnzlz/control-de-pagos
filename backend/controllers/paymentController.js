@@ -4,7 +4,8 @@ import {
     createPaymentRecord,
     getAllPayments,
     updatePaymentRecord,
-    deletePaymentRecord
+    deletePaymentRecord,
+    deleteAllPaymentRecords
 } from '../services/paymentService.js';
 
 const MESES = [
@@ -100,9 +101,17 @@ export const deletePayment = async (req, res, next) => {
             return res.status(404).json({ message: 'Pago no encontrado' });
         }
 
-        // NO devolver 204 para que el frontend reciba JSON response si es necesario, 
         // pero estándar REST 200 o 204 está bien. Aquí 200 con mensaje.
         res.json({ message: 'Pago eliminado' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const deleteAllPayments = async (req, res, next) => {
+    try {
+        await deleteAllPaymentRecords();
+        res.json({ message: 'Todos los pagos han sido eliminados correctamente' });
     } catch (error) {
         next(error);
     }

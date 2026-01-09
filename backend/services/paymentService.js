@@ -60,6 +60,16 @@ export const deletePaymentRecord = async (id) => {
     return true;
 };
 
+export const deleteAllPaymentRecords = async () => {
+    // 1. Eliminar todos los documentos de pagos
+    await PaymentModel.deleteMany({});
+
+    // 2. Limpiar el array de pagos en todos los usuarios
+    await UserModel.updateMany({}, { $set: { payments: [] } });
+
+    return true;
+};
+
 export const getAllPayments = async () => {
     // Buscar todos los pagos sin populate
     const payments = await PaymentModel.find();

@@ -50,6 +50,11 @@ export const usePaymentCalculations = (users: User[], payments: Payment[]) => {
         setAlquilerMes(nuevos);
     };
 
+    // Resetear todos los alquileres a 0
+    const resetAlquileres = () => {
+        setAlquilerMes(Array(12).fill(0));
+    };
+
     // Cálculo de saldos acumulados mes a mes
     const saldosAcumulados = useMemo(() => {
         let saldo = 0;
@@ -89,6 +94,7 @@ export const usePaymentCalculations = (users: User[], payments: Payment[]) => {
     return {
         alquilerMes,
         handleAlquilerChange,
+        resetAlquileres,
         getPagoPorMes,
         getTotalPorUsuario,
         getTotalPorMes,

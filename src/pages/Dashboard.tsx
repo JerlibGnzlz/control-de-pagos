@@ -5,7 +5,7 @@ import AddUserForm from '../components/AddUserForm';
 import UserManagement from '../components/UserManagement';
 import PaymentForm from '../components/PaymentForm';
 import DataTable from '../components/DataTable';
-import ExportToPDF from '../components/ExportToPDF';
+import YearlyClosing from '../components/YearlyClosing';
 
 const Dashboard = () => {
     const { logout, user } = useAuth();
@@ -72,7 +72,7 @@ const Dashboard = () => {
                 <UserManagement />
                 <PaymentForm />
                 <DataTable />
-                <ExportToPDF />
+                <YearlyClosing />
             </div>
         </div>
     );

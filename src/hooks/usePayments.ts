@@ -71,6 +71,20 @@ export function usePayments() {
         },
     });
 
+    const deleteAllPaymentsMutation = useMutation<any, Error, void>({
+        mutationFn: async () => {
+            const res = await fetch(`${apiUrl}/api/payments/all`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            });
+            if (!res.ok) throw new Error('Error al eliminar todos los pagos');
+            return res.json();
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['payments'] });
+        },
+    });
+
     return {
         payments: paymentsQuery.data ?? [],
         isLoading: paymentsQuery.isLoading,
@@ -80,6 +94,8 @@ export function usePayments() {
         updatePayment: updatePaymentMutation.mutateAsync,
         isUpdating: updatePaymentMutation.isPending,
         deletePayment: deletePaymentMutation.mutateAsync,
-        isDeleting: deletePaymentMutation.isPending
+        isDeleting: deletePaymentMutation.isPending,
+        deleteAllPayments: deleteAllPaymentsMutation.mutateAsync,
+        isDeletingAll: deleteAllPaymentsMutation.isPending
     };
 }
