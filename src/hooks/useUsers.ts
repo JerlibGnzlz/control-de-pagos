@@ -51,7 +51,7 @@ export function useUsers(includeInactive = false) {
     // Mutation para actualizar usuario
     const updateUserMutation = useMutation<User, Error, { id: string, name?: string, saldoAnterior?: number }>({
         mutationFn: async ({ id, name, saldoAnterior }) => {
-            const body: any = {};
+            const body: Partial<User> = {};
             if (name !== undefined) body.name = name;
             if (saldoAnterior !== undefined) body.saldoAnterior = saldoAnterior;
 
