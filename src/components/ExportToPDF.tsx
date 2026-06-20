@@ -78,7 +78,7 @@ export default function ExportToPDF() {
         // Fila 2: CALCULO SALDO (Running Balance)
         const calculoRow: any = { usuario: 'CALCULO SALDO', vienen: `$${(totalSaldoAnterior > 0 ? totalSaldoAnterior : 361000).toLocaleString('es-AR')}` }
         let runningIncome = 0
-        MESES.forEach((m, idx) => {
+        MESES.forEach((m) => {
             // Calculate running income correctly
             runningIncome += getTotalPorMes(m)
             const currentBalance = (totalSaldoAnterior > 0 ? totalSaldoAnterior : 361000) + runningIncome

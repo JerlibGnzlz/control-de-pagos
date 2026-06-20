@@ -1,5 +1,5 @@
 import express from 'express'
-import { createUser, getUsers, updateUser, deleteUser, reactivateUser } from '../controllers/userController.js'
+import { createUser, getUsers, updateUser, deleteUser, reactivateUser, deleteUserPermanently } from '../controllers/userController.js'
 
 export const userRoutes = express.Router()
 
@@ -16,5 +16,9 @@ userRoutes.put("/:id", updateUser)
 // DELETE /api/users/:id - Desactivar usuario (soft delete)
 userRoutes.delete("/:id", deleteUser)
 
+// DELETE /api/users/:id/permanent - Eliminar usuario permanentemente
+userRoutes.delete("/:id/permanent", deleteUserPermanently)
+
 // PATCH /api/users/:id/reactivate - Reactivar usuario
 userRoutes.patch("/:id/reactivate", reactivateUser)
+

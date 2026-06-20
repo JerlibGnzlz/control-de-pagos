@@ -59,7 +59,6 @@ const DataTable = () => {
         getPagoPorMes,
         getTotalPorUsuario,
         getTotalPorMes,
-        saldosAcumulados,
         totalRecaudado,
         totalAlquiler,
         totalSaldoAnterior

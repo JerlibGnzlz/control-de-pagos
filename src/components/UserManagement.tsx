@@ -32,6 +32,8 @@ export default function UserManagement() {
         isUpdating,
         deleteUser,
         isDeleting,
+        deleteUserPermanently,
+        isDeletingPermanently,
         reactivateUser,
         isReactivating
     } = useUsers(showInactive);
@@ -96,6 +98,24 @@ export default function UserManagement() {
                     setModalConfig(prev => ({ ...prev, isOpen: false })); // Close modal on success
                 } catch (err: any) {
                     setError(err.message || 'Error al reactivar usuario');
+                    setModalConfig(prev => ({ ...prev, isOpen: false })); // Close modal even on error
+                }
+            }
+        });
+    };
+
+    const handlePermanentDeleteClick = (user: User) => {
+        setModalConfig({
+            isOpen: true,
+            title: 'Eliminar Usuario Permanentemente',
+            message: `¿Estás seguro que deseas eliminar permanentemente a "${user.name}"? Esta acción no se puede deshacer y borrará permanentemente todos sus registros de pagos asociados.`,
+            type: 'danger',
+            onConfirm: async () => {
+                try {
+                    await deleteUserPermanently(user._id);
+                    setModalConfig(prev => ({ ...prev, isOpen: false })); // Close modal on success
+                } catch (err: any) {
+                    setError(err.message || 'Error al eliminar usuario');
                     setModalConfig(prev => ({ ...prev, isOpen: false })); // Close modal even on error
                 }
             }
@@ -254,9 +274,16 @@ export default function UserManagement() {
                                             <button
                                                 onClick={() => handleDeleteClick(user)}
                                                 disabled={isDeleting}
+                                                className="flex-1 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 rounded transition-colors flex items-center justify-center gap-1"
+                                            >
+                                                <span>🚫</span> Desactivar
+                                            </button>
+                                            <button
+                                                onClick={() => handlePermanentDeleteClick(user)}
+                                                disabled={isDeletingPermanently}
                                                 className="flex-1 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded transition-colors flex items-center justify-center gap-1"
                                             >
-                                                <span>🗑️</span> Desactivar
+                                                <span>🗑️</span> Eliminar
                                             </button>
                                         </div>
                                     </>
@@ -296,13 +323,23 @@ export default function UserManagement() {
                                         </div>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => handleReactivateClick(user)}
-                                    disabled={isReactivating}
-                                    className="w-full py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-green-500 dark:hover:border-green-500 text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 rounded-lg text-sm font-medium transition-all shadow-sm"
-                                >
-                                    🔄 Reactivar Cuenta
-                                </button>
+                                <div className="flex gap-2 w-full">
+                                    <button
+                                        onClick={() => handleReactivateClick(user)}
+                                        disabled={isReactivating}
+                                        className="flex-1 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-green-500 dark:hover:border-green-500 text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 rounded-lg text-sm font-medium transition-all shadow-sm flex items-center justify-center gap-1"
+                                    >
+                                        🔄 Reactivar
+                                    </button>
+                                    <button
+                                        onClick={() => handlePermanentDeleteClick(user)}
+                                        disabled={isDeletingPermanently}
+                                        className="px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg text-sm font-medium transition-all shadow-sm flex items-center justify-center gap-1"
+                                        title="Eliminar permanentemente"
+                                    >
+                                        <span>🗑️</span>
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

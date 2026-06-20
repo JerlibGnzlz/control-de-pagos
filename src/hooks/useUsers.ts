@@ -88,6 +88,24 @@ export function useUsers(includeInactive = false) {
         },
     })
 
+    // Mutation para eliminar usuario permanentemente (hard delete)
+    const deleteUserPermanentlyMutation = useMutation<void, Error, string>({
+        mutationFn: async (id: string) => {
+            const res = await fetch(`${apiUrl}/api/users/${id}/permanent`, {
+                method: 'DELETE',
+                headers: getAuthHeaders(),
+            })
+            if (!res.ok) {
+                const error = await res.json()
+                throw new Error(error.message || 'Error al eliminar usuario')
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users'] })
+            queryClient.invalidateQueries({ queryKey: ['payments'] }) // Invalidar pagos ya que se eliminan en cascada
+        },
+    })
+
     // Mutation para reactivar usuario
     const reactivateUserMutation = useMutation<User, Error, string>({
         mutationFn: async (id: string) => {
@@ -114,7 +132,10 @@ export function useUsers(includeInactive = false) {
         isUpdating: updateUserMutation.isPending,
         deleteUser: deleteUserMutation.mutateAsync,
         isDeleting: deleteUserMutation.isPending,
+        deleteUserPermanently: deleteUserPermanentlyMutation.mutateAsync,
+        isDeletingPermanently: deleteUserPermanentlyMutation.isPending,
         reactivateUser: reactivateUserMutation.mutateAsync,
         isReactivating: reactivateUserMutation.isPending,
     }
 }
+

@@ -1,4 +1,6 @@
 import User from "../models/UserModel.js"
+import Payment from "../models/PaymentModel.js"
+
 
 export const getUsers = async (req, res, next) => {
     try {
@@ -147,4 +149,32 @@ export const reactivateUser = async (req, res) => {
         res.status(500).json({ error: 'Error al reactivar usuario' });
     }
 };
+
+// Eliminar usuario permanentemente (hard delete) junto con sus pagos
+export const deleteUserPermanently = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const user = await User.findById(id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        // Eliminar todos los pagos asociados al usuario
+        await Payment.deleteMany({ user: id });
+
+        // Eliminar el usuario de la base de datos
+        await User.findByIdAndDelete(id);
+
+        res.json({
+            message: 'Usuario y sus pagos asociados eliminados con éxito'
+        });
+
+    } catch (err) {
+        console.error('Error al eliminar usuario permanentemente:', err);
+        res.status(500).json({ error: 'Error al eliminar usuario' });
+    }
+};
+
 
